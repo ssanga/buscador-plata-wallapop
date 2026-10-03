@@ -2,12 +2,15 @@
 
 Contexto para agentes de IA (Claude Code, Codex, Cursor…) y para quien retome el proyecto.
 
+- Repositorio (público): https://github.com/ssanga/buscador-plata-wallapop
+- Web (GitHub Pages): https://ssanga.github.io/buscador-plata-wallapop/
+
 ## Qué es
 
 Herramienta personal para **detectar oportunidades de compra de monedas de plata en Wallapop**.
 Cada noche descarga los anuncios, descarta réplicas y anuncios que no son monedas, estima los
 gramos de plata fina de cada uno y calcula cuánto se paga **respecto al valor de fundición**
-(precio spot). Una web local muestra rankings (top 20 por defecto).
+(precio spot). Una web estática en GitHub Pages muestra rankings (top 20 por defecto).
 
 La métrica clave es `premium_pct = (precio / valor_fundición − 1) × 100`. El precio absoluto
 engaña: una moneda de 5 g a 10 € es más cara que una onza a 50 €.
@@ -17,27 +20,41 @@ mensajes de log en español). El usuario trabaja en Windows 10 con PowerShell.
 
 ## Arquitectura
 
+Producción = **GitHub Actions + GitHub Pages** (todo gratis, repo público):
+
 ```
-Programador de tareas de Windows (03:30)
-  └─ scripts/ejecutar_batch.ps1 ─► python main.py batch
+.github/workflows/batch-nocturno.yml  (cron 02:17 UTC + ejecución manual con input max_pages)
+  1. pytest                                   si el analizador está roto, no se tocan los datos
+  2. rama data: plata.db.gz ─► data/plata.db  memoria entre ejecuciones
+  3. python main.py batch                     (continue-on-error: la web se publica igualmente)
         ├─ plata/spot.py      precio spot XAG (gold-api.com, fallback Yahoo) + USD→EUR (frankfurter.dev)
         ├─ plata/wallapop.py  API de búsqueda de Wallapop, una búsqueda por keyword de config.KEYWORDS
         ├─ plata/analyzer.py  heurísticas: réplica, accesorio, comprador, peso, ley, cantidad
-        └─ plata/db.py        SQLite en data/plata.db
-python main.py web ─► plata/web.py (Flask) + plata/templates/index.html — lee SQLite en cada petición
+        └─ plata/db.py        SQLite
+  4. python main.py export ─► site/data.json
+  5. data/plata.db ─► rama data (repo nuevo de un solo commit + push -f: el repo no crece)
+  6. site/ ─► GitHub Pages (upload-pages-artifact + deploy-pages)
+  7. si el batch falló, el job termina en rojo (email de GitHub)
 ```
+
+Pages es estático: `site/index.html` descarga `data.json` y filtra/ordena en el navegador (JS
+vanilla, sin build). En local, `python main.py web` (Flask) sirve el **mismo** `index.html` y genera
+`data.json` al vuelo desde SQLite: hay una sola interfaz que mantener.
 
 | Fichero | Responsabilidad |
 |---|---|
-| `main.py` | **Punto de entrada único**. Subcomandos `batch` y `web`. |
+| `main.py` | **Punto de entrada único**. Subcomandos `batch`, `export` y `web`. |
 | `plata/config.py` | Keywords, límites de precio/páginas, retardo, umbral de "sospechoso". Todo sobreescribible por variables de entorno `PLATA_*`. |
 | `plata/wallapop.py` | Cliente HTTP con reintentos/backoff. |
 | `plata/analyzer.py` | Función pura `analyze(title, description) -> Analysis`. Es donde está casi toda la lógica y donde más se itera. |
 | `plata/batch.py` | Orquesta: spot → descarga → análisis → upsert → marca inactivos. También `--reanalyze`. |
 | `plata/db.py` | Esquema SQLite (`CREATE IF NOT EXISTS`) y `connect()` como context manager (hace commit al salir). |
-| `plata/web.py` | Vistas: `oportunidades`, `baratas`, `nuevos`, `bajadas`, `sospechosos`, `descartados`; `POST /item/<id>/descartar|restaurar`; JSON en `/api/ranking` y `/item/<id>/historial`. |
+| `plata/export.py` | `build(conn)` → dict para la web. Exporta solo un subconjunto (ver límites en el fichero) para que el JSON pese cientos de KB y no decenas de MB. |
+| `plata/web.py` | Flask local: `/` (site/index.html), `/data.json` (export al vuelo), `/item/<id>/historial`. |
+| `site/index.html` | La web (HTML + CSS + JS en un fichero). Vistas: oportunidades, baratas, nuevos, bajadas, sospechosos, descartados. Filtros en el hash de la URL; descartes en `localStorage`. |
 | `tests/test_analyzer.py` | Tests del analizador con textos reales de anuncios. |
-| `scripts/programar_tarea.ps1` | Registra la tarea diaria `BuscadorPlataWallapop`. |
+| `.github/workflows/tests.yml` | pytest en cada push/PR. |
+| `scripts/*.ps1` | Alternativa: ejecutar el batch en el PC con el Programador de tareas de Windows. |
 
 ## Comandos
 
@@ -46,6 +63,7 @@ pip install -r requirements.txt
 python main.py batch                  # ejecución completa (~15-30 min, ~1 petición/s)
 python main.py batch --max-pages 3    # prueba rápida (~1 min)
 python main.py batch --reanalyze      # recalcula el análisis de lo guardado, sin descargar
+python main.py export [--out site/data.json]
 python main.py web [--port 5000] [--host 127.0.0.1]
 python -m pytest -q                   # tests
 ```
@@ -74,7 +92,8 @@ En la consola de Windows conviene `PYTHONIOENCODING=utf-8` (hay emojis en los an
   `replica_reason`, `is_wanted`, `is_accessory`, `weight_g`, `purity`, `quantity`, `fine_grams`,
   `estimate_source`, `confidence`, `notes`, `melt_value_eur`, `eur_per_fine_g`, `premium_pct`).
   `first_seen`/`last_seen` = `started_at` de la ejecución; `active=0` si no apareció en la última;
-  `dismissed=1` lo pone el usuario desde la web y **se conserva** entre ejecuciones;
+  `dismissed` existe en el esquema pero hoy no se usa (los descartes viven en el `localStorage`
+  del navegador, porque Pages no puede escribir);
   `prev_price` guarda el precio anterior tras un cambio (se mantiene hasta el siguiente cambio).
 - `price_history(item_id, price, seen_at)`: solo cuando cambia el precio.
 - `runs`: una fila por ejecución con spot del día, contadores y error.
@@ -119,9 +138,18 @@ vender un 12 € o un 2000 pesetas a valor facial (≈ −50/−60 %) es la opor
   tests fallaban sin motivo aparente.
 - Sin dependencias pesadas: `requests` + `flask`. No añadir navegador headless salvo que la API deje
   de funcionar.
-- `data/` y `logs/` no se versionan.
+- `data/`, `logs/` y `site/data.json` no se versionan. La BD de producción está en la rama `data`
+  (`git show origin/data:plata.db.gz | gunzip > data/plata.db`); no hacer merge de esa rama.
+- El repo es público: no guardar datos personales de vendedores (hoy no se guarda `user_id`) ni secretos.
+- Todo texto que venga de Wallapop es de terceros: en `site/index.html` se escapa siempre (`esc()`)
+  y las URL solo se aceptan si empiezan por `https://`.
 
 ## Limitaciones conocidas
+
+- No está comprobado que Wallapop acepte peticiones desde las IP de GitHub Actions (centros de
+  datos de Azure). Si las bloquea, el batch falla con HTTP 403/429; la alternativa es ejecutar en el
+  PC (`scripts/programar_tarea.ps1`) y subir solo `site/data.json`.
+- GitHub desactiva los cron de repos públicos tras 60 días sin actividad (avisa por email).
 
 - Sets conmemorativos de quiosco ("plata pura", numerados) y medallas bañadas no declaradas
   pueden colarse: el usuario los descarta desde la web.

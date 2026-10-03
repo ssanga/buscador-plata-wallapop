@@ -1,0 +1,97 @@
+name: Batch nocturno
+
+on:
+  schedule:
+    # 02:17 UTC = 04:17 en horario de verano peninsular (03:17 en invierno).
+    # Minuto "raro" a propósito: GitHub retrasa mucho los cron a las horas en punto.
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+    inputs:
+      max_pages:
+        description: "Páginas por búsqueda (vacío = valor por defecto; 2-3 para una prueba rápida)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write   # escribir la rama data
+  pages: write      # publicar en GitHub Pages
+  id-token: write
+
+concurrency:
+  group: batch-nocturno
+  cancel-in-progress: false
+
+jobs:
+  batch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Tests del analizador
+        run: python -m pytest -q
+
+      - name: Recuperar la base de datos (rama data)
+        run: |
+          mkdir -p data
+          if git fetch --depth=1 origin data 2>/dev/null; then
+            git show FETCH_HEAD:plata.db.gz | gunzip > data/plata.db
+            echo "Base de datos recuperada: $(du -h data/plata.db | cut -f1)"
+          else
+            echo "Primera ejecución: se empieza con una base de datos vacía"
+          fi
+
+      - name: Descargar y analizar anuncios
+        id: batch
+        continue-on-error: true
+        env:
+          PYTHONIOENCODING: utf-8
+          MAX_PAGES: ${{ inputs.max_pages }}
+        run: python main.py batch ${MAX_PAGES:+--max-pages "$MAX_PAGES"}
+
+      - name: Exportar JSON para la web
+        run: python main.py export --out site/data.json
+
+      - name: Guardar la base de datos (rama data)
+        # La rama data se reescribe con un único commit para que el repo no crezca cada noche.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gzip -9 -c data/plata.db > "$RUNNER_TEMP/plata.db.gz"
+          tmp="$(mktemp -d)"
+          cd "$tmp"
+          git init -q -b data
+          cp "$RUNNER_TEMP/plata.db.gz" .
+          git add plata.db.gz
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -q -m "Datos del $(date -u +%F)"
+          git push -q -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+      - name: Publicar en GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
+
+      - name: Marcar el job como fallido si el batch falló
+        # La web ya se ha publicado con los datos anteriores y un aviso; así además llega el email de fallo.
+        if: steps.batch.outcome == 'failure'
+        run: |
+          echo "::error::El batch ha fallado; revisa el paso 'Descargar y analizar anuncios'"
+          exit 1

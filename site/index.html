@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plata en Wallapop</title>
+<meta name="description" content="Ranking diario de monedas de plata en Wallapop según su precio frente al valor de la plata.">
+<style>
+  :root {
+    --bg: #f6f6f4; --card: #ffffff; --text: #1d1d1f; --muted: #6b6b70; --border: #e2e2de;
+    --accent: #4a6fa5; --good: #1f7a4d; --good-bg: #e3f3ea; --warn: #9a5b00; --warn-bg: #fdf0dc;
+    --bad: #a23b3b; --bad-bg: #f8e3e3; --chip: #eeeeea;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141416; --card: #1e1e21; --text: #ececee; --muted: #9a9aa2; --border: #2e2e33;
+      --accent: #8fb0e0; --good: #6fd19b; --good-bg: #173326; --warn: #f0b860; --warn-bg: #3a2a12;
+      --bad: #f08a8a; --bad-bg: #3a1d1d; --chip: #2a2a2e;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
+  header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px 24px; }
+  h1 { font-size: 22px; margin: 0; }
+  .meta { color: var(--muted); font-size: 13px; }
+  .meta b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .alert { margin-top: 12px; padding: 10px 14px; border-radius: 8px; background: var(--bad-bg); color: var(--bad); font-size: 14px; }
+  nav { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0 12px; }
+  nav button { padding: 6px 12px; border-radius: 999px; border: 0; color: var(--text); background: var(--chip); font: inherit; font-size: 14px; cursor: pointer; }
+  nav button.on { background: var(--accent); color: var(--bg); }
+  .filters { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; font-size: 14px; color: var(--muted); margin-bottom: 14px; }
+  .filters input[type=number], .filters select, .filters input[type=search] { background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 4px 6px; font: inherit; }
+  .filters input[type=number] { width: 80px; }
+  .hint { font-size: 13px; color: var(--muted); margin: 0 0 14px; }
+  ol { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+  li.item { display: grid; grid-template-columns: 28px 96px 1fr auto; gap: 14px; align-items: start; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+  .rank { font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 2px; }
+  .thumb { width: 96px; height: 96px; object-fit: cover; border-radius: 6px; background: var(--chip); display: block; }
+  .title { font-weight: 600; color: var(--text); text-decoration: none; }
+  .title:hover { text-decoration: underline; }
+  .desc { color: var(--muted); font-size: 13px; margin: 4px 0 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .chip { font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--chip); color: var(--muted); }
+  .chip.good { background: var(--good-bg); color: var(--good); }
+  .chip.warn { background: var(--warn-bg); color: var(--warn); }
+  .nums { text-align: right; min-width: 150px; font-variant-numeric: tabular-nums; }
+  .price { font-size: 20px; font-weight: 700; }
+  .old { color: var(--muted); text-decoration: line-through; font-size: 13px; margin-right: 4px; font-weight: 400; }
+  .premium { font-weight: 600; }
+  .premium.good { color: var(--good); } .premium.bad { color: var(--bad); }
+  .small { font-size: 12px; color: var(--muted); }
+  .link { background: none; border: 0; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; text-decoration: underline; padding: 0; margin-top: 6px; }
+  .empty { padding: 40px; text-align: center; color: var(--muted); background: var(--card); border-radius: 10px; border: 1px dashed var(--border); }
+  footer { margin-top: 30px; font-size: 12px; color: var(--muted); }
+  footer a { color: var(--muted); }
+  @media (max-width: 640px) {
+    li.item { grid-template-columns: 64px 1fr; }
+    .rank { display: none; }
+    .thumb { width: 64px; height: 64px; }
+    .nums { grid-column: 1 / -1; text-align: left; display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Plata en Wallapop</h1>
+    <div class="meta" id="meta">Cargando…</div>
+  </header>
+  <div id="alert"></div>
+
+  <nav id="tabs"></nav>
+
+  <div class="filters">
+    <label>Precio máx. <input type="number" id="f-max" min="0" step="1"> €</label>
+    <label>Confianza mín.
+      <select id="f-conf"><option value="alta">alta</option><option value="media" selected>media</option><option value="baja">baja</option></select>
+    </label>
+    <label><input type="checkbox" id="f-ship"> Solo con envío</label>
+    <label>Mostrar <input type="number" id="f-limit" min="5" max="500" value="20"></label>
+    <label><input type="search" id="f-text" placeholder="Buscar en el título…"></label>
+  </div>
+
+  <p class="hint" id="hint"></p>
+  <div id="list"></div>
+
+  <footer>
+    Estimaciones automáticas a partir del texto del anuncio: mira siempre las fotos y pregunta el peso antes de comprar.
+    Los descartes se guardan solo en este navegador.
+    · <a href="https://github.com/ssanga/buscador-plata-wallapop">Código fuente</a>
+  </footer>
+</div>
+
+<script>
+const VIEWS = {
+  oportunidades: "Mejor €/g de plata",
+  baratas: "Más baratas",
+  nuevos: "Nuevos hoy",
+  bajadas: "Bajadas de precio",
+  sospechosos: "Demasiado buenos",
+  descartados: "Descartados",
+};
+const CONF = { alta: ["alta"], media: ["alta", "media"], baja: ["alta", "media", "baja"] };
+const DISMISSED_KEY = "plata.dismissed";
+
+let data = null;
+const state = { view: "oportunidades", max: null, conf: "media", ship: false, limit: 20, text: "" };
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const safeUrl = (u) => (typeof u === "string" && u.startsWith("https://") ? u : "#");
+const fmt = (n, d = 2) => Number(n).toLocaleString("es-ES", { minimumFractionDigits: d, maximumFractionDigits: d });
+const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+
+function loadDismissed() {
+  try { return new Set(JSON.parse(localStorage.getItem(DISMISSED_KEY) || "[]")); } catch { return new Set(); }
+}
+function saveDismissed(set) {
+  try { localStorage.setItem(DISMISSED_KEY, JSON.stringify([...set])); } catch { /* modo privado */ }
+}
+let dismissed = loadDismissed();
+
+function readState() {
+  const p = new URLSearchParams(location.hash.slice(1));
+  if (VIEWS[p.get("view")]) state.view = p.get("view");
+  state.max = p.get("max") ? Number(p.get("max")) : null;
+  if (CONF[p.get("conf")]) state.conf = p.get("conf");
+  state.ship = p.get("ship") === "1";
+  if (p.get("limit")) state.limit = Math.min(Math.max(Number(p.get("limit")) || 20, 5), 500);
+  state.text = p.get("q") || "";
+  $("f-max").value = state.max ?? "";
+  $("f-conf").value = state.conf;
+  $("f-ship").checked = state.ship;
+  $("f-limit").value = state.limit;
+  $("f-text").value = state.text;
+}
+function writeState() {
+  const p = new URLSearchParams({ view: state.view, conf: state.conf, limit: state.limit });
+  if (state.max) p.set("max", state.max);
+  if (state.ship) p.set("ship", "1");
+  if (state.text) p.set("q", state.text);
+  history.replaceState(null, "", "#" + p.toString());
+}
+
+function select() {
+  const susp = data.config.suspicious_premium_pct;
+  const q = norm(state.text);
+  let items = data.items.filter((it) =>
+    (state.view === "descartados") === dismissed.has(it.id) &&
+    (!state.max || it.price <= state.max) &&
+    (!state.ship || it.shippable) &&
+    (!q || norm(it.title).includes(q))
+  );
+  const byPremium = (a, b) => a.premium_pct - b.premium_pct;
+  const estimated = (it) => it.fine_grams != null && CONF[state.conf].includes(it.confidence);
+  switch (state.view) {
+    case "oportunidades": items = items.filter((it) => estimated(it) && it.premium_pct >= susp).sort(byPremium); break;
+    case "sospechosos": items = items.filter((it) => estimated(it) && it.premium_pct < susp).sort(byPremium); break;
+    case "nuevos": items = items.filter((it) => it.is_new).sort((a, b) => (a.premium_pct ?? 999) - (b.premium_pct ?? 999) || a.price - b.price); break;
+    case "bajadas": items = items.filter((it) => it.prev_price && it.prev_price > it.price).sort((a, b) => (a.price - a.prev_price) / a.prev_price - (b.price - b.prev_price) / b.prev_price); break;
+    default: items.sort((a, b) => a.price - b.price);
+  }
+  return items.slice(0, state.limit);
+}
+
+function hint() {
+  const susp = data.config.suspicious_premium_pct;
+  return {
+    oportunidades: `Ordenadas por sobreprecio respecto al valor de la plata que contienen. Negativo = por debajo del valor de fundición. Se excluyen réplicas, accesorios y lo que está más de un ${-susp} % por debajo (pestaña «Demasiado buenos»).`,
+    sospechosos: `Más de un ${-susp} % por debajo del valor de fundición. Suelen ser lotes con precio por unidad, réplicas no declaradas o pesos mal leídos… pero alguna vez hay una ganga de verdad.`,
+    baratas: `Precio absoluto más bajo (mínimo ${data.config.min_price} € para evitar los «precio a convenir»), sin réplicas ni accesorios.`,
+    nuevos: "Anuncios aparecidos en la última ejecución.",
+    bajadas: "Anuncios cuyo vendedor ha bajado el precio.",
+    descartados: "Anuncios que has ocultado en este navegador.",
+  }[state.view];
+}
+
+function card(it, i) {
+  const drop = it.prev_price && it.prev_price > it.price;
+  const chips = [
+    it.is_new && `<span class="chip good">nuevo</span>`,
+    drop && `<span class="chip good">bajó de ${fmt(it.prev_price, 0)} €</span>`,
+    it.estimate_source && `<span class="chip">${esc(it.estimate_source)}</span>`,
+    it.fine_grams != null && `<span class="chip ${it.confidence === "baja" ? "warn" : ""}">confianza ${esc(it.confidence)}</span>`,
+    it.notes && `<span class="chip warn">${esc(it.notes)}</span>`,
+    it.reserved && `<span class="chip warn">reservado</span>`,
+    `<span class="chip">${esc(it.city || "?")}${it.shippable ? " · envío" : ""}</span>`,
+  ].filter(Boolean).join("");
+  const p = it.premium_pct;
+  const nums = it.fine_grams != null
+    ? `<div class="premium ${p < 0 ? "good" : p > 50 ? "bad" : ""}">${p > 0 ? "+" : ""}${fmt(p, 0)} % vs. plata</div>
+       <div class="small">${fmt(it.fine_grams, 1)} g finos · fundición ${fmt(it.melt_value_eur, 0)} €</div>
+       <div class="small">${fmt(it.eur_per_fine_g)} €/g</div>`
+    : `<div class="small">peso desconocido</div>`;
+  const url = safeUrl(it.url);
+  return `<li class="item">
+    <div class="rank">${i + 1}</div>
+    <a href="${url}" target="_blank" rel="noopener">${it.image ? `<img class="thumb" src="${safeUrl(it.image)}" alt="" loading="lazy">` : `<div class="thumb"></div>`}</a>
+    <div>
+      <a class="title" href="${url}" target="_blank" rel="noopener">${esc(it.title)}</a>
+      <div class="desc">${esc(it.description)}</div>
+      <div class="chips">${chips}</div>
+    </div>
+    <div class="nums">
+      <div class="price">${drop ? `<span class="old">${fmt(it.prev_price, 0)}</span>` : ""}${fmt(it.price)} €</div>
+      ${nums}
+      <button class="link" data-toggle="${esc(it.id)}">${dismissed.has(it.id) ? "restaurar" : "descartar"}</button>
+    </div>
+  </li>`;
+}
+
+function render() {
+  writeState();
+  $("tabs").innerHTML = Object.entries(VIEWS)
+    .map(([k, v]) => `<button data-view="${k}" class="${k === state.view ? "on" : ""}">${v}</button>`).join("");
+  $("hint").textContent = hint();
+  const items = select();
+  $("list").innerHTML = items.length
+    ? `<ol>${items.map(card).join("")}</ol>`
+    : `<div class="empty">No hay anuncios con estos filtros.</div>`;
+}
+
+function renderHeader() {
+  const r = data.last_run, s = data.stats;
+  $("meta").innerHTML = r
+    ? `Spot <b>${fmt(r.spot_eur_g, 3)} €/g</b> (${fmt(r.spot_usd_oz)} $/oz) · onza ≈ <b>${fmt(r.spot_eur_g * 31.1035, 0)} €</b>
+       · actualizado ${esc(new Date(r.finished_at).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" }))}
+       · ${s.total.toLocaleString("es-ES")} anuncios activos, ${s.estimated.toLocaleString("es-ES")} con peso estimado, ${s.replicas.toLocaleString("es-ES")} réplicas descartadas`
+    : "Sin datos todavía.";
+  if (data.failed_run) {
+    $("alert").innerHTML = `<div class="alert">La última ejecución falló (${esc(data.failed_run.started_at.slice(0, 16).replace("T", " "))} UTC): ${esc(data.failed_run.error)}. Se muestran los datos anteriores.</div>`;
+  }
+}
+
+$("tabs").addEventListener("click", (e) => {
+  const v = e.target.dataset.view;
+  if (v) { state.view = v; render(); }
+});
+$("list").addEventListener("click", (e) => {
+  const id = e.target.dataset.toggle;
+  if (!id) return;
+  dismissed.has(id) ? dismissed.delete(id) : dismissed.add(id);
+  saveDismissed(dismissed);
+  render();
+});
+$("f-max").addEventListener("input", (e) => { state.max = Number(e.target.value) || null; render(); });
+$("f-conf").addEventListener("change", (e) => { state.conf = e.target.value; render(); });
+$("f-ship").addEventListener("change", (e) => { state.ship = e.target.checked; render(); });
+$("f-limit").addEventListener("change", (e) => { state.limit = Math.min(Math.max(Number(e.target.value) || 20, 5), 500); render(); });
+$("f-text").addEventListener("input", (e) => { state.text = e.target.value; render(); });
+
+readState();
+fetch("data.json", { cache: "no-cache" })
+  .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+  .then((d) => { data = d; renderHeader(); render(); })
+  .catch((e) => {
+    $("meta").textContent = "";
+    $("list").innerHTML = `<div class="empty">No se pudieron cargar los datos (${esc(e.message)}).</div>`;
+  });
+</script>
+</body>
+</html>

@@ -22,3 +22,6 @@ logs/
 .idea/
 Thumbs.db
 .DS_Store
+
+# JSON generado para la web (en Pages lo genera el workflow)
+site/data.json

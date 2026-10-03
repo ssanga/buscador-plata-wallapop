@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plata en Wallapop</title>
+<style>
+  :root {
+    --bg: #f6f6f4; --card: #ffffff; --text: #1d1d1f; --muted: #6b6b70; --border: #e2e2de;
+    --accent: #4a6fa5; --good: #1f7a4d; --good-bg: #e3f3ea; --warn: #9a5b00; --warn-bg: #fdf0dc;
+    --bad: #a23b3b; --bad-bg: #f8e3e3; --chip: #eeeeea;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141416; --card: #1e1e21; --text: #ececee; --muted: #9a9aa2; --border: #2e2e33;
+      --accent: #8fb0e0; --good: #6fd19b; --good-bg: #173326; --warn: #f0b860; --warn-bg: #3a2a12;
+      --bad: #f08a8a; --bad-bg: #3a1d1d; --chip: #2a2a2e;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
+  header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px 24px; }
+  h1 { font-size: 22px; margin: 0; }
+  .meta { color: var(--muted); font-size: 13px; }
+  .meta b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .alert { margin-top: 12px; padding: 10px 14px; border-radius: 8px; background: var(--bad-bg); color: var(--bad); font-size: 14px; }
+  nav { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0 12px; }
+  nav a { padding: 6px 12px; border-radius: 999px; text-decoration: none; color: var(--text); background: var(--chip); font-size: 14px; }
+  nav a.on { background: var(--accent); color: var(--bg); }
+  form.filters { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; font-size: 14px; color: var(--muted); margin-bottom: 14px; }
+  form.filters input[type=number], form.filters select { background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 4px 6px; font: inherit; }
+  form.filters input[type=number] { width: 80px; }
+  form.filters button { background: var(--accent); color: var(--bg); border: 0; border-radius: 6px; padding: 5px 12px; font: inherit; cursor: pointer; }
+  .hint { font-size: 13px; color: var(--muted); margin: 0 0 14px; }
+  ol { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+  li.item { display: grid; grid-template-columns: 28px 96px 1fr auto; gap: 14px; align-items: start; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+  .rank { font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 2px; }
+  .thumb { width: 96px; height: 96px; object-fit: cover; border-radius: 6px; background: var(--chip); }
+  .title { font-weight: 600; color: var(--text); text-decoration: none; }
+  .title:hover { text-decoration: underline; }
+  .desc { color: var(--muted); font-size: 13px; margin: 4px 0 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .chip { font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--chip); color: var(--muted); }
+  .chip.new { background: var(--good-bg); color: var(--good); }
+  .chip.drop { background: var(--good-bg); color: var(--good); }
+  .chip.warn { background: var(--warn-bg); color: var(--warn); }
+  .chip.bad { background: var(--bad-bg); color: var(--bad); }
+  .nums { text-align: right; min-width: 150px; font-variant-numeric: tabular-nums; }
+  .price { font-size: 20px; font-weight: 700; }
+  .old { color: var(--muted); text-decoration: line-through; font-size: 13px; margin-right: 4px; }
+  .premium { font-weight: 600; }
+  .premium.good { color: var(--good); } .premium.bad { color: var(--bad); }
+  .small { font-size: 12px; color: var(--muted); }
+  .actions form { display: inline; }
+  .actions button { background: none; border: 0; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; text-decoration: underline; padding: 0; margin-top: 6px; }
+  .empty { padding: 40px; text-align: center; color: var(--muted); background: var(--card); border-radius: 10px; border: 1px dashed var(--border); }
+  @media (max-width: 640px) {
+    li.item { grid-template-columns: 64px 1fr; }
+    .rank { display: none; }
+    .thumb { width: 64px; height: 64px; }
+    .nums { grid-column: 1 / -1; text-align: left; display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Plata en Wallapop</h1>
+    <div class="meta">
+      {% if run %}
+        Spot <b>{{ "%.3f"|format(run.spot_eur_g) }} €/g</b> ({{ "%.2f"|format(run.spot_usd_oz) }} $/oz)
+        · onza ≈ <b>{{ "%.0f"|format(run.spot_eur_g * 31.1035) }} €</b>
+        · actualizado {{ run.finished_at[:16].replace("T", " ") }} UTC
+        · {{ stats.total }} anuncios activos, {{ stats.estimados or 0 }} con peso estimado, {{ stats.replicas or 0 }} réplicas
+      {% else %}
+        Sin datos todavía: ejecuta <code>python main.py batch</code>
+      {% endif %}
+    </div>
+  </header>
+  {% if failed %}
+    <div class="alert">La última ejecución falló ({{ failed.started_at[:16].replace("T", " ") }}): {{ failed.error }}. Se muestran los datos anteriores.</div>
+  {% endif %}
+
+  <nav>
+    {% for key, label in views.items() %}
+      <a href="?view={{ key }}{% if f.max_price %}&max_price={{ f.max_price }}{% endif %}&min_conf={{ f.min_conf }}{% if f.shipping %}&shipping=1{% endif %}" class="{{ 'on' if f.view == key }}">{{ label }}</a>
+    {% endfor %}
+  </nav>
+
+  <form class="filters" method="get">
+    <input type="hidden" name="view" value="{{ f.view }}">
+    <label>Precio máx. <input type="number" name="max_price" step="1" min="0" value="{{ f.max_price|int if f.max_price else '' }}"> €</label>
+    <label>Confianza mín.
+      <select name="min_conf">
+        {% for c in ["alta", "media", "baja"] %}<option value="{{ c }}" {{ 'selected' if f.min_conf == c }}>{{ c }}</option>{% endfor %}
+      </select>
+    </label>
+    <label><input type="checkbox" name="shipping" value="1" {{ 'checked' if f.shipping }}> Solo con envío</label>
+    <label>Mostrar <input type="number" name="limit" min="5" max="200" value="{{ f.limit }}"></label>
+    <button>Aplicar</button>
+  </form>
+
+  {% if f.view == "oportunidades" %}
+    <p class="hint">Ordenadas por sobreprecio respecto al valor de la plata que contienen. Negativo = por debajo del valor de fundición. Se excluyen réplicas, accesorios y anuncios por debajo del {{ config.SUSPICIOUS_PREMIUM_PCT|int }} % (están en «Demasiado buenos»).</p>
+  {% elif f.view == "sospechosos" %}
+    <p class="hint">Más del {{ -config.SUSPICIOUS_PREMIUM_PCT|int }} % por debajo del valor de fundición. Suelen ser lotes con precio por unidad, réplicas no declaradas o pesos mal leídos… pero de vez en cuando hay una ganga de verdad.</p>
+  {% elif f.view == "baratas" %}
+    <p class="hint">Precio absoluto más bajo (mínimo {{ config.MIN_PRICE|int }} € para evitar los «precio a convenir»), sin réplicas ni accesorios.</p>
+  {% endif %}
+
+  {% if items %}
+  <ol>
+    {% for it in items %}
+    <li class="item">
+      <div class="rank">{{ loop.index }}</div>
+      <a href="{{ it.url }}" target="_blank" rel="noopener">
+        {% if it.image %}<img class="thumb" src="{{ it.image }}" alt="" loading="lazy">{% else %}<div class="thumb"></div>{% endif %}
+      </a>
+      <div>
+        <a class="title" href="{{ it.url }}" target="_blank" rel="noopener">{{ it.title }}</a>
+        <div class="desc">{{ it.description }}</div>
+        <div class="chips">
+          {% if run and it.first_seen == run.started_at %}<span class="chip new">nuevo</span>{% endif %}
+          {% if it.prev_price and it.prev_price > it.price %}<span class="chip drop">bajó de {{ "%.0f"|format(it.prev_price) }} €</span>{% endif %}
+          {% if it.is_replica %}<span class="chip bad">{{ it.replica_reason }}</span>{% endif %}
+          {% if it.estimate_source %}<span class="chip">{{ it.estimate_source }}</span>{% endif %}
+          {% if it.fine_grams %}<span class="chip {{ 'warn' if it.confidence == 'baja' }}">confianza {{ it.confidence }}</span>{% endif %}
+          {% if it.notes %}<span class="chip warn">{{ it.notes }}</span>{% endif %}
+          {% if it.reserved %}<span class="chip warn">reservado</span>{% endif %}
+          <span class="chip">{{ it.city or "?" }}{% if it.shippable %} · envío{% endif %}</span>
+        </div>
+      </div>
+      <div class="nums">
+        <div class="price">{% if it.prev_price and it.prev_price > it.price %}<span class="old">{{ "%.0f"|format(it.prev_price) }}</span>{% endif %}{{ "%.2f"|format(it.price) }} €</div>
+        {% if it.fine_grams %}
+          <div class="premium {{ 'good' if it.premium_pct < 0 else 'bad' if it.premium_pct > 50 }}">{{ "%+.0f"|format(it.premium_pct) }} % vs. plata</div>
+          <div class="small">{{ "%.1f"|format(it.fine_grams) }} g finos · fundición {{ "%.0f"|format(it.melt_value_eur) }} €</div>
+          <div class="small">{{ "%.2f"|format(it.eur_per_fine_g) }} €/g</div>
+        {% else %}
+          <div class="small">peso desconocido</div>
+        {% endif %}
+        <div class="actions">
+          {% if it.dismissed %}
+            <form method="post" action="{{ url_for('restore', item_id=it.id) }}"><button>restaurar</button></form>
+          {% else %}
+            <form method="post" action="{{ url_for('dismiss', item_id=it.id) }}"><button title="Ocultar este anuncio en el futuro">descartar</button></form>
+          {% endif %}
+        </div>
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+    <div class="empty">No hay anuncios con estos filtros.</div>
+  {% endif %}
+</div>
+</body>
+</html>

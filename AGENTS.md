@@ -146,9 +146,9 @@ vender un 12 € o un 2000 pesetas a valor facial (≈ −50/−60 %) es la opor
 
 ## Limitaciones conocidas
 
-- No está comprobado que Wallapop acepte peticiones desde las IP de GitHub Actions (centros de
-  datos de Azure). Si las bloquea, el batch falla con HTTP 403/429; la alternativa es ejecutar en el
-  PC (`scripts/programar_tarea.ps1`) y subir solo `site/data.json`.
+- Wallapop acepta las peticiones desde GitHub Actions (comprobado el 2026-10-03). Si algún día las
+  bloquea, el batch fallará con HTTP 403/429; la alternativa es ejecutar en el PC
+  (`scripts/programar_tarea.ps1`) y subir solo `site/data.json`.
 - GitHub desactiva los cron de repos públicos tras 60 días sin actividad (avisa por email).
 
 - Sets conmemorativos de quiosco ("plata pura", numerados) y medallas bañadas no declaradas

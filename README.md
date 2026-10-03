@@ -4,7 +4,7 @@ Descarga cada noche los anuncios de monedas de plata de Wallapop, descarta répl
 cuántos gramos de plata fina tiene cada anuncio y los ordena según lo que pagas **respecto al
 valor de la plata que contienen**.
 
-- **Web:** https://ssanga.github.io/buscador-plata-wallapop/
+- **Web:** [ssanga.github.io/buscador-plata-wallapop](https://ssanga.github.io/buscador-plata-wallapop/#view=oportunidades&conf=media&limit=20)
 - **Repositorio:** https://github.com/ssanga/buscador-plata-wallapop
 
 ```

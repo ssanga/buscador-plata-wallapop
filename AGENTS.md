@@ -196,6 +196,9 @@ casi nunca se vende tan por debajo del spot.
 
 ## Ideas pendientes
 
+Funcionalidades propuestas para la web (precio objetivo, gráfica por anuncio, favoritos…): ver
+[IDEAS.md](IDEAS.md).
+
 - Alertas (Telegram/email) cuando aparece una onza por debajo de X % del spot.
 - Clasificación con LLM (p. ej. Claude Haiku) solo de los mejores candidatos para confirmar
   réplica/tipo, en caché por `id` + `modified_at`.

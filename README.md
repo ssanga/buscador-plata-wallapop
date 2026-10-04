@@ -61,7 +61,7 @@ Tiene modo claro y oscuro.
 ## Puesta en marcha en GitHub (una sola vez)
 
 1. **Settings → Pages → Build and deployment → Source: GitHub Actions.**
-2. **Actions → Batch nocturno → Run workflow**. Con `max_pages = 2` hace una prueba rápida de unos
+2. **Actions → Batch nocturno → Run workflow**. Con `max_pages = 3` hace una prueba rápida de unos
    minutos; sin `max_pages` hace la carga completa.
 3. A partir de ahí se ejecuta solo cada noche. Si falla, GitHub te manda un email y la web sigue
    mostrando los datos anteriores con un aviso.
@@ -69,6 +69,8 @@ Tiene modo claro y oscuro.
 Notas:
 - El estado vive en la rama `data` como `estado.json.gz`. Para descargarlo:
   `git fetch origin data && git show origin/data:estado.json.gz | gunzip > data/estado.json`.
+  Para subir un estado local (sobrescribe el de producción), consulta "Operaciones en producción"
+  en [AGENTS.md](AGENTS.md).
 - En repos públicos, GitHub desactiva los workflows programados tras 60 días sin actividad. Avisa
   por email antes y se reactiva con un clic en la pestaña Actions.
 - El workflow `Tests` pasa los tests en cada push.

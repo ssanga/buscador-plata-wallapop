@@ -166,6 +166,24 @@ casi nunca se vende tan por debajo del spot.
   `data`; no hacer merge de esa rama.
 - El repo es público: no guardar datos personales de vendedores (no se guarda `user_id`) ni secretos.
 
+## Operaciones en producción
+
+- **Lanzar el workflow a mano**: en el PC del usuario no está instalado `gh`, así que se hace desde
+  la web: Actions → *Batch nocturno* → *Run workflow* (con `max_pages = 3` para una prueba).
+- **Subir el estado local a la rama `data`** (p. ej. para sembrarla o recuperar el histórico). Se
+  hace igual que en el workflow, con un repo nuevo de un solo commit:
+
+  ```bash
+  tmp="$(mktemp -d)"; gzip -9 -c data/estado.json > "$tmp/estado.json.gz"; cd "$tmp"
+  git init -q -b data && git add estado.json.gz && git commit -q -m "Datos del $(date -u +%F)"
+  git push -f https://github.com/ssanga/buscador-plata-wallapop.git data
+  ```
+
+  Ojo: sobrescribe el estado de producción. Antes hay que comprobar que el local es más reciente.
+- **Bajar el estado de producción**: `git fetch origin data && git show origin/data:estado.json.gz | gunzip > data/estado.json`.
+- La rama `data` se sembró el 2026-10-04 con el estado local del 2026-10-03 (8.903 anuncios), al
+  pasar de SQLite a JSON.
+
 ## Limitaciones conocidas
 
 - Si Wallapop bloquea algún día las IP de GitHub Actions, el batch fallará con HTTP 403/429; la
@@ -184,3 +202,8 @@ casi nunca se vende tan por debajo del spot.
 - Ejecución incremental (`order_by=newest` hasta encontrar anuncios ya vistos) varias veces al día.
 - Precio de referencia por tipo de moneda (mediana de Wallapop) además del spot.
 - Gráfica del histórico de precio de cada anuncio (los datos ya están en `history`).
+- Posibles fallos vistos en el top el 2026-10-04 (falta revisarlos y añadir sus tests):
+  - "Moneda Plata 1 Onza 150 Euro Austria 2010" es una Filarmónica (1,50 €), pero sale como
+    "Onza genérica".
+  - Un "Moneda Plata 1 Onza Canguro Australiano" tiene una foto que parece dorada: podría ser de
+    oro o estar bañada.

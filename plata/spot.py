@@ -1,18 +1,16 @@
-"""Precio spot de la plata en EUR por gramo (fuentes gratuitas sin API key)."""
+"""Precio spot de la plata en EUR (fuentes gratuitas sin API key)."""
 import logging
 
 import requests
 
 log = logging.getLogger(__name__)
 
-TROY_OUNCE_G = 31.1034768
-
 
 def get_spot() -> dict:
-    """Devuelve {'usd_oz', 'usd_eur', 'eur_g'}. Lanza excepción si no hay datos."""
+    """Devuelve {'usd_oz', 'usd_eur', 'eur_oz'}. Lanza excepción si no hay datos."""
     usd_oz = _silver_usd_oz()
     usd_eur = _usd_to_eur()
-    return {"usd_oz": usd_oz, "usd_eur": usd_eur, "eur_g": usd_oz * usd_eur / TROY_OUNCE_G}
+    return {"usd_oz": round(usd_oz, 3), "usd_eur": usd_eur, "eur_oz": round(usd_oz * usd_eur, 3)}
 
 
 def _silver_usd_oz() -> float:

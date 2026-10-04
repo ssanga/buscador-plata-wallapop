@@ -55,30 +55,47 @@ class WallapopClient:
         max_price: float = config.MAX_PRICE,
         max_pages: int = config.MAX_PAGES_PER_KEYWORD,
     ) -> Iterator[dict]:
-        """Itera los anuncios de una búsqueda ordenada por precio ascendente."""
-        params = {
-            "source": "search_box",
-            "keywords": keywords,
-            "order_by": "price_low_to_high",
-            "latitude": config.LATITUDE,
-            "longitude": config.LONGITUDE,
-            "category_id": COLLECTIBLES_CATEGORY,
-            "min_sale_price": min_price,
-            "max_sale_price": max_price,
-        }
-        for _ in range(max_pages):
-            data = self._get(params)
-            section = data.get("data", {}).get("section", {})
-            items = section.get("payload", {}).get("items", [])
-            yield from items
-            next_page = data.get("meta", {}).get("next_page")
-            if not items or not next_page:
-                break
-            # El token de paginación ya lleva codificados todos los filtros.
-            params = {"next_page": next_page}
-            time.sleep(self.delay)
-        else:
-            log.info("'%s': alcanzado el límite de %s páginas", keywords, max_pages)
+        """Itera los anuncios de una búsqueda ordenada por precio ascendente.
+
+        Por tramos: cada `config.BAND_PAGES` páginas se relanza la búsqueda desde el último precio
+        visto, para no depender de cuánto deje paginar Wallapop con un mismo token. Los anuncios
+        repetidos en el solape los deduplica quien llama.
+        """
+        band_min = min_price
+        pages = 0
+        while pages < max_pages:
+            params = {
+                "source": "search_box",
+                "keywords": keywords,
+                "order_by": "price_low_to_high",
+                "latitude": config.LATITUDE,
+                "longitude": config.LONGITUDE,
+                "category_id": COLLECTIBLES_CATEGORY,
+                "min_sale_price": band_min,
+                "max_sale_price": max_price,
+            }
+            band_pages, last_price = 0, band_min
+            while True:
+                data = self._get(params)
+                pages += 1
+                band_pages += 1
+                items = data.get("data", {}).get("section", {}).get("payload", {}).get("items", [])
+                yield from items
+                if items:
+                    last_price = float(items[-1].get("price", {}).get("amount") or last_price)
+                next_page = data.get("meta", {}).get("next_page")
+                if not items or not next_page:
+                    return
+                if pages >= max_pages:
+                    log.info("'%s': alcanzado el límite de %s páginas (hasta %.0f €)", keywords, max_pages, last_price)
+                    return
+                time.sleep(self.delay)
+                # Nuevo tramo, salvo que todo el tramo sea del mismo precio (no avanzaría).
+                if band_pages >= config.BAND_PAGES and last_price > band_min:
+                    band_min = last_price
+                    break
+                # El token de paginación ya lleva codificados todos los filtros.
+                params = {"next_page": next_page}
 
 
 def item_url(item: dict) -> str:

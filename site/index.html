@@ -3,90 +3,261 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Plata en Wallapop</title>
-<meta name="description" content="Ranking diario de monedas de plata en Wallapop según su precio frente al valor de la plata.">
+<title>Onzas de plata</title>
+<meta name="description" content="Ranking diario de monedas bullion de plata de 1 onza en Wallapop según su precio frente al spot.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23c9ccd1' stroke='%2378808a' stroke-width='2'/%3E%3Ctext x='16' y='21' font-size='12' font-family='Arial' font-weight='700' text-anchor='middle' fill='%2337404a'%3EAg%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f6f6f4; --card: #ffffff; --text: #1d1d1f; --muted: #6b6b70; --border: #e2e2de;
-    --accent: #4a6fa5; --good: #1f7a4d; --good-bg: #e3f3ea; --warn: #9a5b00; --warn-bg: #fdf0dc;
-    --bad: #a23b3b; --bad-bg: #f8e3e3; --chip: #eeeeea;
+    color-scheme: light;
+    --bg: #f4f4f2;
+    --surface: #fcfcfb;
+    --surface-2: #f0efec;
+    --border: #e4e3df;
+    --text: #0b0b0b;
+    --text-2: #52514e;
+    --text-3: #7c7b77;
+    --accent: #2a78d6;
+    --accent-soft: #e3eefb;
+    --below: #2a78d6;      /* diverging: por debajo del spot */
+    --above: #e34948;      /* diverging: por encima del spot */
+    --neutral: #d9d8d4;    /* diverging: punto medio */
+    --good: #0ca30c;
+    --good-text: #006300;
+    --good-soft: #e2f4e2;
+    --warn-text: #8a5a00;
+    --warn-soft: #fdf1d8;
+    --shadow: 0 1px 2px rgb(0 0 0 / .04), 0 4px 16px rgb(0 0 0 / .05);
+    --shadow-hover: 0 2px 4px rgb(0 0 0 / .06), 0 12px 32px rgb(0 0 0 / .10);
   }
   @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #141416; --card: #1e1e21; --text: #ececee; --muted: #9a9aa2; --border: #2e2e33;
-      --accent: #8fb0e0; --good: #6fd19b; --good-bg: #173326; --warn: #f0b860; --warn-bg: #3a2a12;
-      --bad: #f08a8a; --bad-bg: #3a1d1d; --chip: #2a2a2e;
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --bg: #111110; --surface: #1a1a19; --surface-2: #232321; --border: #2e2e2b;
+      --text: #ffffff; --text-2: #c3c2b7; --text-3: #8f8e86;
+      --accent: #3987e5; --accent-soft: #1b2b40;
+      --below: #3987e5; --above: #e66767; --neutral: #4a4a46;
+      --good-text: #6fd16f; --good-soft: #17301a; --warn-text: #f3c463; --warn-soft: #3a2c10;
+      --shadow: 0 1px 2px rgb(0 0 0 / .3); --shadow-hover: 0 8px 28px rgb(0 0 0 / .45);
     }
   }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #111110; --surface: #1a1a19; --surface-2: #232321; --border: #2e2e2b;
+    --text: #ffffff; --text-2: #c3c2b7; --text-3: #8f8e86;
+    --accent: #3987e5; --accent-soft: #1b2b40;
+    --below: #3987e5; --above: #e66767; --neutral: #4a4a46;
+    --good-text: #6fd16f; --good-soft: #17301a; --warn-text: #f3c463; --warn-soft: #3a2c10;
+    --shadow: 0 1px 2px rgb(0 0 0 / .3); --shadow-hover: 0 8px 28px rgb(0 0 0 / .45);
+  }
+
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
-  header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px 24px; }
-  h1 { font-size: 22px; margin: 0; }
-  .meta { color: var(--muted); font-size: 13px; }
-  .meta b { color: var(--text); font-variant-numeric: tabular-nums; }
-  .alert { margin-top: 12px; padding: 10px 14px; border-radius: 8px; background: var(--bad-bg); color: var(--bad); font-size: 14px; }
-  nav { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0 12px; }
-  nav button { padding: 6px 12px; border-radius: 999px; border: 0; color: var(--text); background: var(--chip); font: inherit; font-size: 14px; cursor: pointer; }
-  nav button.on { background: var(--accent); color: var(--bg); }
-  .filters { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; font-size: 14px; color: var(--muted); margin-bottom: 14px; }
-  .filters input[type=number], .filters select, .filters input[type=search] { background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 4px 6px; font: inherit; }
-  .filters input[type=number] { width: 80px; }
-  .hint { font-size: 13px; color: var(--muted); margin: 0 0 14px; }
-  ol { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
-  li.item { display: grid; grid-template-columns: 28px 96px 1fr auto; gap: 14px; align-items: start; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
-  .rank { font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 2px; }
-  .thumb { width: 96px; height: 96px; object-fit: cover; border-radius: 6px; background: var(--chip); display: block; }
-  .title { font-weight: 600; color: var(--text); text-decoration: none; }
-  .title:hover { text-decoration: underline; }
-  .desc { color: var(--muted); font-size: 13px; margin: 4px 0 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .chips { display: flex; flex-wrap: wrap; gap: 5px; }
-  .chip { font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--chip); color: var(--muted); }
-  .chip.good { background: var(--good-bg); color: var(--good); }
-  .chip.warn { background: var(--warn-bg); color: var(--warn); }
-  .nums { text-align: right; min-width: 150px; font-variant-numeric: tabular-nums; }
-  .price { font-size: 20px; font-weight: 700; }
-  .old { color: var(--muted); text-decoration: line-through; font-size: 13px; margin-right: 4px; font-weight: 400; }
-  .premium { font-weight: 600; }
-  .premium.good { color: var(--good); } .premium.bad { color: var(--bad); }
-  .small { font-size: 12px; color: var(--muted); }
-  .link { background: none; border: 0; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; text-decoration: underline; padding: 0; margin-top: 6px; }
-  .empty { padding: 40px; text-align: center; color: var(--muted); background: var(--card); border-radius: 10px; border: 1px dashed var(--border); }
-  footer { margin-top: 30px; font-size: 12px; color: var(--muted); }
-  footer a { color: var(--muted); }
-  @media (max-width: 640px) {
-    li.item { grid-template-columns: 64px 1fr; }
-    .rank { display: none; }
-    .thumb { width: 64px; height: 64px; }
-    .nums { grid-column: 1 / -1; text-align: left; display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-feature-settings: "cv11", "ss01";
+  }
+  .num { font-variant-numeric: tabular-nums; }
+  button, input, select { font: inherit; color: inherit; }
+  a { color: inherit; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px; }
+
+  /* ---------- cabecera ---------- */
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 0 18px; }
+  .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .logo {
+    width: 40px; height: 40px; flex: none; border-radius: 50%;
+    background: radial-gradient(circle at 32% 28%, #ffffff, #d4d7dc 45%, #9aa1ab 100%);
+    box-shadow: inset 0 0 0 2px rgb(255 255 255 / .5), 0 1px 3px rgb(0 0 0 / .25);
+    display: grid; place-items: center; font-weight: 700; font-size: 14px; color: #3a424c; letter-spacing: -.02em;
+  }
+  h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -.02em; }
+  .tagline { margin: 0; color: var(--text-3); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .icon-btn {
+    width: 38px; height: 38px; flex: none; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--surface); display: grid; place-items: center; cursor: pointer;
+  }
+  .icon-btn:hover { background: var(--surface-2); }
+  .icon-btn svg { width: 18px; height: 18px; }
+
+  .alert { margin: 0 0 16px; padding: 12px 16px; border-radius: 12px; background: var(--warn-soft); color: var(--warn-text); font-size: 14px; display: flex; gap: 10px; align-items: flex-start; }
+
+  /* ---------- KPIs ---------- */
+  .kpis { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 22px; }
+  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px 18px; box-shadow: var(--shadow); min-width: 0; }
+  .kpi-label { font-size: 12px; font-weight: 500; color: var(--text-3); text-transform: uppercase; letter-spacing: .06em; }
+  .kpi-value { font-size: 28px; font-weight: 700; letter-spacing: -.03em; margin-top: 4px; line-height: 1.15; }
+  .kpi-value small { font-size: 15px; font-weight: 500; color: var(--text-2); letter-spacing: 0; }
+  .kpi-sub { font-size: 13px; color: var(--text-2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kpi-spot { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; align-items: end; }
+  .spark { position: relative; height: 56px; min-width: 0; }
+  .spark svg { width: 100%; height: 100%; overflow: visible; display: block; }
+  .spark .tip {
+    position: absolute; top: -30px; transform: translateX(-50%); pointer-events: none; white-space: nowrap;
+    background: var(--text); color: var(--surface); font-size: 12px; padding: 3px 8px; border-radius: 6px; opacity: 0; transition: opacity .1s;
+  }
+  .spark-empty { font-size: 12px; color: var(--text-3); align-self: center; }
+
+  /* ---------- barra de herramientas ---------- */
+  .toolbar { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); padding: 10px 0 12px; margin: 0 -16px 8px; padding-left: 16px; padding-right: 16px; }
+  .tabs { display: inline-flex; gap: 2px; padding: 3px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border); max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { border: 0; background: none; padding: 7px 14px; border-radius: 9px; cursor: pointer; font-size: 14px; font-weight: 500; color: var(--text-2); white-space: nowrap; }
+  .tab:hover { color: var(--text); }
+  .tab.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgb(0 0 0 / .12); }
+  .tab .count { margin-left: 6px; font-size: 12px; color: var(--text-3); }
+  .chips { display: flex; gap: 6px; margin-top: 10px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip {
+    border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 5px 12px; font-size: 13px;
+    cursor: pointer; white-space: nowrap; color: var(--text-2);
+  }
+  .chip:hover { border-color: var(--text-3); }
+  .chip.on { background: var(--text); border-color: var(--text); color: var(--surface); }
+  .chip .count { opacity: .65; margin-left: 4px; }
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; align-items: center; }
+  .field {
+    display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 0 10px; height: 36px; font-size: 13px; color: var(--text-3);
+  }
+  .field:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .field input, .field select { border: 0; background: none; outline: none; height: 100%; color: var(--text); font-size: 14px; min-width: 0; }
+  .field.search { flex: 1 1 220px; }
+  .field.search input { width: 100%; }
+  .field input[type=number] { width: 64px; }
+  .field svg { width: 15px; height: 15px; flex: none; }
+  .toggle { cursor: pointer; user-select: none; }
+  .toggle input { accent-color: var(--accent); width: 15px; height: 15px; }
+  .toggle span { color: var(--text); font-size: 14px; }
+
+  .hint { font-size: 13px; color: var(--text-3); margin: 4px 0 16px; max-width: 80ch; }
+
+  /* ---------- tarjetas ---------- */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+  .card {
+    position: relative; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+  .card.reserved { opacity: .7; }
+  .media { position: relative; aspect-ratio: 4 / 3; background: var(--surface-2); overflow: hidden; }
+  .media img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s ease; }
+  .card:hover .media img { transform: scale(1.03); }
+  .media .placeholder { position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-3); font-size: 13px; }
+  .rank {
+    position: absolute; top: 10px; left: 10px; min-width: 30px; height: 26px; padding: 0 8px; border-radius: 8px;
+    background: rgb(0 0 0 / .62); color: #fff; font-size: 13px; font-weight: 600; display: grid; place-items: center; backdrop-filter: blur(4px);
+  }
+  .dismiss {
+    position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border-radius: 50%; border: 0; cursor: pointer;
+    background: rgb(0 0 0 / .55); color: #fff; display: grid; place-items: center; opacity: 0; transition: opacity .15s; backdrop-filter: blur(4px);
+  }
+  .dismiss svg { width: 14px; height: 14px; }
+  .card:hover .dismiss, .dismiss:focus-visible { opacity: 1; }
+  @media (hover: none) { .dismiss { opacity: 1; } }
+  .badges { position: absolute; left: 10px; bottom: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 7px; background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgb(0 0 0 / .2); }
+  .badge svg { width: 12px; height: 12px; }
+  .badge.good svg { color: var(--good); }
+  .badge.warn { color: var(--warn-text); }
+
+  .body { padding: 14px 16px 0; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .eyebrow { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: .05em; }
+  .conf { display: inline-flex; align-items: center; gap: 4px; color: var(--text-3); font-weight: 500; text-transform: none; letter-spacing: 0; }
+  .conf i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .conf i.off { opacity: .25; }
+  .title { font-size: 15px; font-weight: 600; line-height: 1.35; text-decoration: none; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .title:hover { text-decoration: underline; text-underline-offset: 2px; }
+  .meta { font-size: 12.5px; color: var(--text-3); display: flex; flex-wrap: wrap; gap: 4px 10px; }
+  .note { font-size: 12px; color: var(--warn-text); background: var(--warn-soft); border-radius: 6px; padding: 2px 7px; align-self: flex-start; }
+
+  .foot { padding: 12px 16px 14px; margin-top: 10px; border-top: 1px solid var(--border); display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: end; }
+  .price { font-size: 24px; font-weight: 700; letter-spacing: -.03em; line-height: 1.1; }
+  .price s { font-size: 14px; font-weight: 500; color: var(--text-3); margin-right: 6px; letter-spacing: 0; }
+  .per { font-size: 12.5px; color: var(--text-2); }
+  .prem { text-align: right; }
+  .prem-value { font-size: 15px; font-weight: 700; }
+  .prem-label { font-size: 11.5px; color: var(--text-3); }
+  .meter { position: relative; grid-column: 1 / -1; height: 6px; border-radius: 3px; background: var(--surface-2); margin-top: 8px; }
+  .meter::after { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--neutral); }
+  .meter b { position: absolute; top: 0; bottom: 0; border-radius: 3px; }
+
+  .more { display: flex; justify-content: center; margin: 24px 0 8px; }
+  .btn { border: 1px solid var(--border); background: var(--surface); border-radius: 10px; padding: 9px 18px; cursor: pointer; font-weight: 500; }
+  .btn:hover { background: var(--surface-2); }
+  .empty { padding: 56px 24px; text-align: center; color: var(--text-3); background: var(--surface); border: 1px dashed var(--border); border-radius: 16px; }
+
+  .skeleton { background: linear-gradient(90deg, var(--surface-2), var(--border), var(--surface-2)); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 8px; }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+  @media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } .card, .media img { transition: none; } }
+
+  footer { margin: 40px 0 32px; font-size: 12.5px; color: var(--text-3); line-height: 1.6; }
+  footer a { color: var(--text-2); }
+
+  @media (max-width: 900px) {
+    .kpis { grid-template-columns: 1fr 1fr; }
+    .kpi:first-child { grid-column: 1 / -1; }
+  }
+  @media (max-width: 520px) {
+    .kpi-value { font-size: 24px; }
+    .tagline { display: none; }
+    .grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <h1>Plata en Wallapop</h1>
-    <div class="meta" id="meta">Cargando…</div>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">Ag</div>
+      <div style="min-width:0">
+        <h1>Onzas de plata en Wallapop</h1>
+        <p class="tagline">Monedas bullion de 1 oz ordenadas por lo que pagas frente al precio de la plata</p>
+      </div>
+    </div>
+    <button class="icon-btn" id="theme" title="Cambiar tema" aria-label="Cambiar tema">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    </button>
   </header>
+
   <div id="alert"></div>
 
-  <nav id="tabs"></nav>
+  <section class="kpis" id="kpis" aria-label="Resumen">
+    <div class="kpi"><div class="skeleton" style="height:72px"></div></div>
+    <div class="kpi"><div class="skeleton" style="height:72px"></div></div>
+    <div class="kpi"><div class="skeleton" style="height:72px"></div></div>
+    <div class="kpi"><div class="skeleton" style="height:72px"></div></div>
+  </section>
 
-  <div class="filters">
-    <label>Precio máx. <input type="number" id="f-max" min="0" step="1"> €</label>
-    <label>Confianza mín.
-      <select id="f-conf"><option value="alta">alta</option><option value="media" selected>media</option><option value="baja">baja</option></select>
-    </label>
-    <label><input type="checkbox" id="f-ship"> Solo con envío</label>
-    <label>Mostrar <input type="number" id="f-limit" min="5" max="500" value="20"></label>
-    <label><input type="search" id="f-text" placeholder="Buscar en el título…"></label>
+  <div class="toolbar">
+    <nav class="tabs" id="tabs" aria-label="Vistas"></nav>
+    <div class="chips" id="chips" aria-label="Tipo de moneda"></div>
+    <div class="filters">
+      <label class="field search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="search" id="f-text" placeholder="Buscar en el título…" aria-label="Buscar en el título">
+      </label>
+      <label class="field">Hasta <input type="number" id="f-max" min="0" step="5" placeholder="—" aria-label="Precio máximo"> €</label>
+      <label class="field">Confianza
+        <select id="f-conf"><option value="alta">alta</option><option value="media">media+</option><option value="baja">todas</option></select>
+      </label>
+      <label class="field">Orden
+        <select id="f-sort"><option value="premium">sobreprecio</option><option value="price">precio</option><option value="recent">más recientes</option></select>
+      </label>
+      <label class="field toggle"><input type="checkbox" id="f-ship"><span>Con envío</span></label>
+      <label class="field toggle"><input type="checkbox" id="f-lots"><span>Incluir lotes</span></label>
+    </div>
   </div>
 
   <p class="hint" id="hint"></p>
-  <div id="list"></div>
+  <main id="list"></main>
 
   <footer>
-    Estimaciones automáticas a partir del texto del anuncio: mira siempre las fotos y pregunta el peso antes de comprar.
+    El sobreprecio compara el precio de cada onza con el valor de la plata que contiene (spot del día).
+    Es una estimación automática a partir del texto del anuncio: <strong>mira siempre las fotos y pregunta antes de comprar</strong>.
     Los descartes se guardan solo en este navegador.
     · <a href="https://github.com/ssanga/buscador-plata-wallapop">Código fuente</a>
   </footer>
@@ -94,168 +265,325 @@
 
 <script>
 const VIEWS = {
-  oportunidades: "Mejor €/g de plata",
-  baratas: "Más baratas",
-  nuevos: "Nuevos hoy",
-  bajadas: "Bajadas de precio",
-  sospechosos: "Demasiado buenos",
-  descartados: "Descartados",
+  oportunidades: "Oportunidades",
+  nuevas: "Nuevas",
+  bajadas: "Bajadas",
+  sospechosas: "Demasiado buenas",
+  descartadas: "Descartadas",
+};
+const HINTS = {
+  oportunidades: (s) => `Onzas ordenadas por sobreprecio sobre el spot. Negativo = más barata que la plata que contiene. Lo que está más de un ${-s} % por debajo va a «Demasiado buenas».`,
+  nuevas: () => "Anuncios aparecidos en la última actualización.",
+  bajadas: () => "Anuncios cuyo vendedor ha bajado el precio.",
+  sospechosas: (s) => `Más de un ${-s} % por debajo del spot: casi siempre réplicas no declaradas, precios por unidad o errores. De vez en cuando, una ganga.`,
+  descartadas: () => "Anuncios que has ocultado en este navegador.",
 };
 const CONF = { alta: ["alta"], media: ["alta", "media"], baja: ["alta", "media", "baja"] };
+const PAGE = 24;
 const DISMISSED_KEY = "plata.dismissed";
-
-let data = null;
-const state = { view: "oportunidades", max: null, conf: "media", ship: false, limit: 20, text: "" };
+const THEME_KEY = "plata.theme";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const safeUrl = (u) => (typeof u === "string" && u.startsWith("https://") ? u : "#");
 const fmt = (n, d = 2) => Number(n).toLocaleString("es-ES", { minimumFractionDigits: d, maximumFractionDigits: d });
+const eur = (n, d = 2) => `${fmt(n, d)} €`;
+const pct = (n) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${fmt(Math.abs(n), 1)} %`;
 const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+const store = {
+  get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* modo privado */ } },
+};
 
-function loadDismissed() {
-  try { return new Set(JSON.parse(localStorage.getItem(DISMISSED_KEY) || "[]")); } catch { return new Set(); }
-}
-function saveDismissed(set) {
-  try { localStorage.setItem(DISMISSED_KEY, JSON.stringify([...set])); } catch { /* modo privado */ }
-}
-let dismissed = loadDismissed();
+const ICON = {
+  spark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/></svg>',
+  down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>',
+  lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+  x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  undo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-1"/></svg>',
+  alert: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>',
+};
 
+let data = null;
+let dismissed = new Set(store.get(DISMISSED_KEY, []));
+let shown = PAGE;
+const state = { view: "oportunidades", coin: "", max: null, conf: "media", sort: "premium", ship: false, lots: true, q: "" };
+
+/* ---------- tema ---------- */
+function applyTheme(t) { if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; }
+applyTheme(store.get(THEME_KEY, null));
+$("theme").addEventListener("click", () => {
+  const dark = document.documentElement.dataset.theme
+    ? document.documentElement.dataset.theme === "dark"
+    : matchMedia("(prefers-color-scheme: dark)").matches;
+  const next = dark ? "light" : "dark";
+  applyTheme(next); store.set(THEME_KEY, next);
+});
+
+/* ---------- estado en la URL ---------- */
 function readState() {
   const p = new URLSearchParams(location.hash.slice(1));
   if (VIEWS[p.get("view")]) state.view = p.get("view");
-  state.max = p.get("max") ? Number(p.get("max")) : null;
+  state.coin = p.get("coin") || "";
+  state.max = Number(p.get("max")) || null;
   if (CONF[p.get("conf")]) state.conf = p.get("conf");
+  if (["premium", "price", "recent"].includes(p.get("sort"))) state.sort = p.get("sort");
   state.ship = p.get("ship") === "1";
-  if (p.get("limit")) state.limit = Math.min(Math.max(Number(p.get("limit")) || 20, 5), 500);
-  state.text = p.get("q") || "";
+  state.lots = p.get("lots") !== "0";
+  state.q = p.get("q") || "";
   $("f-max").value = state.max ?? "";
   $("f-conf").value = state.conf;
+  $("f-sort").value = state.sort;
   $("f-ship").checked = state.ship;
-  $("f-limit").value = state.limit;
-  $("f-text").value = state.text;
+  $("f-lots").checked = state.lots;
+  $("f-text").value = state.q;
 }
 function writeState() {
-  const p = new URLSearchParams({ view: state.view, conf: state.conf, limit: state.limit });
+  const p = new URLSearchParams({ view: state.view, conf: state.conf });
+  if (state.coin) p.set("coin", state.coin);
   if (state.max) p.set("max", state.max);
+  if (state.sort !== "premium") p.set("sort", state.sort);
   if (state.ship) p.set("ship", "1");
-  if (state.text) p.set("q", state.text);
+  if (!state.lots) p.set("lots", "0");
+  if (state.q) p.set("q", state.q);
   history.replaceState(null, "", "#" + p.toString());
 }
 
-function select() {
+/* ---------- selección ---------- */
+function inView(it, view) {
   const susp = data.config.suspicious_premium_pct;
-  const q = norm(state.text);
-  let items = data.items.filter((it) =>
-    (state.view === "descartados") === dismissed.has(it.id) &&
-    (!state.max || it.price <= state.max) &&
-    (!state.ship || it.shippable) &&
-    (!q || norm(it.title).includes(q))
-  );
-  const byPremium = (a, b) => a.premium_pct - b.premium_pct;
-  const estimated = (it) => it.fine_grams != null && CONF[state.conf].includes(it.confidence);
-  switch (state.view) {
-    case "oportunidades": items = items.filter((it) => estimated(it) && it.premium_pct >= susp).sort(byPremium); break;
-    case "sospechosos": items = items.filter((it) => estimated(it) && it.premium_pct < susp).sort(byPremium); break;
-    case "nuevos": items = items.filter((it) => it.is_new).sort((a, b) => (a.premium_pct ?? 999) - (b.premium_pct ?? 999) || a.price - b.price); break;
-    case "bajadas": items = items.filter((it) => it.prev_price && it.prev_price > it.price).sort((a, b) => (a.price - a.prev_price) / a.prev_price - (b.price - b.prev_price) / b.prev_price); break;
-    default: items.sort((a, b) => a.price - b.price);
+  if ((view === "descartadas") !== dismissed.has(it.id)) return false;
+  if (view === "oportunidades") return it.premium_pct >= susp;
+  if (view === "sospechosas") return it.premium_pct < susp;
+  if (view === "nuevas") return it.is_new;
+  if (view === "bajadas") return it.prev_price > it.price;
+  return true;
+}
+function passesFilters(it, { ignoreCoin = false } = {}) {
+  const q = norm(state.q);
+  return CONF[state.conf].includes(it.confidence)
+    && (ignoreCoin || !state.coin || it.coin_type === state.coin)
+    && (!state.max || it.price_per_coin <= state.max)
+    && (!state.ship || it.shippable)
+    && (state.lots || it.quantity === 1)
+    && (!q || norm(it.title).includes(q));
+}
+function selected() {
+  const items = data.items.filter((it) => inView(it, state.view) && passesFilters(it));
+  const sorters = {
+    premium: (a, b) => a.premium_pct - b.premium_pct,
+    price: (a, b) => a.price_per_coin - b.price_per_coin,
+    recent: (a, b) => (a.days_listed ?? 1e9) - (b.days_listed ?? 1e9),
+  };
+  const sort = state.view === "bajadas" && state.sort === "premium"
+    ? (a, b) => (a.price - a.prev_price) / a.prev_price - (b.price - b.prev_price) / b.prev_price
+    : sorters[state.sort];
+  return items.sort(sort);
+}
+
+/* ---------- KPIs + sparkline ---------- */
+function sparkline(points) {
+  if (points.length < 2) return `<div class="spark-empty">La evolución aparecerá con más días de datos</div>`;
+  const w = 240, h = 56, pad = 4;
+  const ys = points.map((p) => p.eur_oz);
+  const min = Math.min(...ys), max = Math.max(...ys), span = max - min || 1;
+  const x = (i) => pad + (i * (w - pad * 2)) / (points.length - 1);
+  const y = (v) => h - pad - ((v - min) / span) * (h - pad * 2);
+  const d = points.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.eur_oz).toFixed(1)}`).join("");
+  const last = points.length - 1;
+  return `<div class="spark" data-points='${esc(JSON.stringify(points))}'>
+    <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="Evolución del spot de la plata en euros por onza, de ${eur(ys[0])} a ${eur(ys[last])}">
+      <path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+      <line class="cross" x1="0" x2="0" y1="0" y2="${h}" stroke="var(--text-3)" stroke-width="1" vector-effect="non-scaling-stroke" opacity="0"/>
+      <circle class="dot" cx="${x(last)}" cy="${y(ys[last])}" r="4" fill="var(--accent)" stroke="var(--surface)" stroke-width="2" vector-effect="non-scaling-stroke"/>
+    </svg>
+    <div class="tip num"></div>
+  </div>`;
+}
+function bindSparkline() {
+  const el = document.querySelector(".spark[data-points]");
+  if (!el) return;
+  const points = JSON.parse(el.dataset.points);
+  const svg = el.querySelector("svg"), tip = el.querySelector(".tip");
+  const cross = svg.querySelector(".cross"), dot = svg.querySelector(".dot");
+  const w = 240, h = 56, pad = 4;
+  const ys = points.map((p) => p.eur_oz);
+  const min = Math.min(...ys), span = Math.max(...ys) - min || 1;
+  const xOf = (i) => pad + (i * (w - pad * 2)) / (points.length - 1);
+  const yOf = (v) => h - pad - ((v - min) / span) * (h - pad * 2);
+  const reset = () => { cross.setAttribute("opacity", 0); tip.style.opacity = 0; dot.setAttribute("cx", xOf(points.length - 1)); dot.setAttribute("cy", yOf(ys.at(-1))); };
+  el.addEventListener("pointermove", (e) => {
+    const r = el.getBoundingClientRect();
+    const i = Math.round(((e.clientX - r.left) / r.width * w - pad) / (w - pad * 2) * (points.length - 1));
+    const k = Math.max(0, Math.min(points.length - 1, i));
+    cross.setAttribute("x1", xOf(k)); cross.setAttribute("x2", xOf(k)); cross.setAttribute("opacity", .5);
+    dot.setAttribute("cx", xOf(k)); dot.setAttribute("cy", yOf(ys[k]));
+    tip.textContent = `${new Date(points[k].date).toLocaleDateString("es-ES", { day: "numeric", month: "short" })} · ${eur(ys[k])}`;
+    tip.style.left = `${(xOf(k) / w) * 100}%`; tip.style.opacity = 1;
+  });
+  el.addEventListener("pointerleave", reset);
+}
+function relTime(iso) {
+  const mins = Math.round((Date.now() - new Date(iso)) / 60000);
+  if (mins < 60) return `hace ${mins} min`;
+  const h = Math.round(mins / 60);
+  return h < 48 ? `hace ${h} h` : `hace ${Math.round(h / 24)} días`;
+}
+function renderKpis() {
+  const r = data.last_run, s = data.stats;
+  if (!r) { $("kpis").innerHTML = `<div class="kpi" style="grid-column:1/-1">Todavía no hay datos.</div>`; return; }
+  const hist = data.spot_history;
+  const prev = hist.length > 1 ? hist.at(-2).eur_oz : null;
+  const change = prev ? (r.spot_eur_oz / prev - 1) * 100 : null;
+  const best = data.items.filter((it) => inView(it, "oportunidades") && it.confidence !== "baja")
+    .sort((a, b) => a.premium_pct - b.premium_pct)[0];
+  $("kpis").innerHTML = `
+    <div class="kpi kpi-spot">
+      <div>
+        <div class="kpi-label">Spot plata</div>
+        <div class="kpi-value num">${eur(r.spot_eur_oz)}<small> /oz</small></div>
+        <div class="kpi-sub num">${fmt(r.spot_usd_oz)} $/oz${change != null ? ` · ${pct(change)} vs. día anterior` : ""}</div>
+      </div>
+      ${sparkline(hist)}
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Mejor onza hoy</div>
+      ${best
+        ? `<div class="kpi-value num">${eur(best.price_per_coin, 0)}</div><div class="kpi-sub num">${pct(best.premium_pct)} · ${esc(best.coin_type)}</div>`
+        : `<div class="kpi-value">—</div><div class="kpi-sub">Sin datos</div>`}
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Onzas en venta</div>
+      <div class="kpi-value num">${s.targets.toLocaleString("es-ES")}</div>
+      <div class="kpi-sub num" title="${s.replicas} réplicas descartadas">de ${s.active.toLocaleString("es-ES")} anuncios analizados</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Actualizado</div>
+      <div class="kpi-value" style="font-size:22px">${esc(relTime(r.finished_at))}</div>
+      <div class="kpi-sub">${esc(new Date(r.finished_at).toLocaleString("es-ES", { dateStyle: "medium", timeStyle: "short" }))}</div>
+    </div>`;
+  bindSparkline();
+  if (data.failed_run) {
+    $("alert").innerHTML = `<div class="alert">${ICON.alert}<div>La última actualización falló (${esc(new Date(data.failed_run.started_at).toLocaleString("es-ES"))}): ${esc(data.failed_run.error)}. Se muestran los datos anteriores.</div></div>`;
   }
-  return items.slice(0, state.limit);
 }
 
-function hint() {
-  const susp = data.config.suspicious_premium_pct;
-  return {
-    oportunidades: `Ordenadas por sobreprecio respecto al valor de la plata que contienen. Negativo = por debajo del valor de fundición. Se excluyen réplicas, accesorios y lo que está más de un ${-susp} % por debajo (pestaña «Demasiado buenos»).`,
-    sospechosos: `Más de un ${-susp} % por debajo del valor de fundición. Suelen ser lotes con precio por unidad, réplicas no declaradas o pesos mal leídos… pero alguna vez hay una ganga de verdad.`,
-    baratas: `Precio absoluto más bajo (mínimo ${data.config.min_price} € para evitar los «precio a convenir»), sin réplicas ni accesorios.`,
-    nuevos: "Anuncios aparecidos en la última ejecución.",
-    bajadas: "Anuncios cuyo vendedor ha bajado el precio.",
-    descartados: "Anuncios que has ocultado en este navegador.",
-  }[state.view];
+/* ---------- tarjeta ---------- */
+function age(days) {
+  if (days === 0) return "publicado hoy";
+  if (days < 60) return `hace ${days} d`;
+  if (days < 730) return `hace ${Math.round(days / 30)} meses`;
+  return `hace ${Math.round(days / 365)} años`;
 }
-
+function confidenceDots(c) {
+  const n = { alta: 3, media: 2, baja: 1 }[c] || 0;
+  return `<span class="conf" title="Confianza ${esc(c)} en la identificación">${[1, 2, 3].map((i) => `<i class="${i > n ? "off" : ""}"></i>`).join("")} ${esc(c)}</span>`;
+}
+function meter(p) {
+  const clamped = Math.max(-60, Math.min(60, p));
+  const width = (Math.abs(clamped) / 60) * 50;
+  const style = p < 0 ? `right:50%;width:${width}%;background:var(--below)` : `left:50%;width:${width}%;background:var(--above)`;
+  return `<div class="meter" role="img" aria-label="${pct(p)} sobre el spot"><b style="${style}"></b></div>`;
+}
 function card(it, i) {
-  const drop = it.prev_price && it.prev_price > it.price;
-  const chips = [
-    it.is_new && `<span class="chip good">nuevo</span>`,
-    drop && `<span class="chip good">bajó de ${fmt(it.prev_price, 0)} €</span>`,
-    it.estimate_source && `<span class="chip">${esc(it.estimate_source)}</span>`,
-    it.fine_grams != null && `<span class="chip ${it.confidence === "baja" ? "warn" : ""}">confianza ${esc(it.confidence)}</span>`,
-    it.notes && `<span class="chip warn">${esc(it.notes)}</span>`,
-    it.reserved && `<span class="chip warn">reservado</span>`,
-    `<span class="chip">${esc(it.city || "?")}${it.shippable ? " · envío" : ""}</span>`,
-  ].filter(Boolean).join("");
-  const p = it.premium_pct;
-  const nums = it.fine_grams != null
-    ? `<div class="premium ${p < 0 ? "good" : p > 50 ? "bad" : ""}">${p > 0 ? "+" : ""}${fmt(p, 0)} % vs. plata</div>
-       <div class="small">${fmt(it.fine_grams, 1)} g finos · fundición ${fmt(it.melt_value_eur, 0)} €</div>
-       <div class="small">${fmt(it.eur_per_fine_g)} €/g</div>`
-    : `<div class="small">peso desconocido</div>`;
+  const drop = it.prev_price > it.price;
   const url = safeUrl(it.url);
-  return `<li class="item">
-    <div class="rank">${i + 1}</div>
-    <a href="${url}" target="_blank" rel="noopener">${it.image ? `<img class="thumb" src="${safeUrl(it.image)}" alt="" loading="lazy">` : `<div class="thumb"></div>`}</a>
-    <div>
-      <a class="title" href="${url}" target="_blank" rel="noopener">${esc(it.title)}</a>
-      <div class="desc">${esc(it.description)}</div>
-      <div class="chips">${chips}</div>
+  const isDismissed = dismissed.has(it.id);
+  const meta = [
+    esc(it.city || "Ubicación desconocida"),
+    it.shippable ? "envío disponible" : "solo en mano",
+    it.days_listed != null ? age(it.days_listed) : "",
+  ].filter(Boolean).map((m) => `<span>${m}</span>`).join("");
+  const badges = [
+    it.is_new && `<span class="badge good">${ICON.spark}Nueva</span>`,
+    drop && `<span class="badge good">${ICON.down}${pct((it.price / it.prev_price - 1) * 100)}</span>`,
+    it.reserved && `<span class="badge warn">${ICON.lock}Reservada</span>`,
+  ].filter(Boolean).join("");
+  return `<article class="card${it.reserved ? " reserved" : ""}">
+    <div class="media">
+      <a href="${url}" target="_blank" rel="noopener" tabindex="-1" aria-hidden="true">
+        ${it.image ? `<img src="${safeUrl(it.image)}" alt="" loading="lazy">` : `<span class="placeholder">Sin foto</span>`}
+      </a>
+      <span class="rank num">#${i + 1}</span>
+      <button class="dismiss" data-toggle="${esc(it.id)}" title="${isDismissed ? "Restaurar" : "Descartar"}" aria-label="${isDismissed ? "Restaurar" : "Descartar"} anuncio">${isDismissed ? ICON.undo : ICON.x}</button>
+      ${badges ? `<div class="badges">${badges}</div>` : ""}
     </div>
-    <div class="nums">
-      <div class="price">${drop ? `<span class="old">${fmt(it.prev_price, 0)}</span>` : ""}${fmt(it.price)} €</div>
-      ${nums}
-      <button class="link" data-toggle="${esc(it.id)}">${dismissed.has(it.id) ? "restaurar" : "descartar"}</button>
+    <div class="body">
+      <div class="eyebrow">${esc(it.coin_type)}${confidenceDots(it.confidence)}</div>
+      <a class="title" href="${url}" target="_blank" rel="noopener" title="${esc(it.description)}">${esc(it.title)}</a>
+      <div class="meta">${meta}</div>
+      ${it.notes ? `<span class="note">${esc(it.notes)}</span>` : ""}
     </div>
-  </li>`;
+    <div class="foot">
+      <div>
+        <div class="price num">${drop ? `<s>${eur(it.prev_price, 0)}</s>` : ""}${eur(it.price, it.price % 1 ? 2 : 0)}</div>
+        <div class="per num">${it.quantity > 1 ? `${it.quantity} onzas · ${eur(it.price_per_coin)}/oz` : `${fmt(it.fine_oz, 3)} oz finas`}</div>
+      </div>
+      <div class="prem">
+        <div class="prem-value num">${pct(it.premium_pct)}</div>
+        <div class="prem-label num">vs. plata (${eur(it.melt_value_eur, 0)})</div>
+      </div>
+      ${meter(it.premium_pct)}
+    </div>
+  </article>`;
 }
 
+/* ---------- render ---------- */
+function renderTabs() {
+  $("tabs").innerHTML = Object.entries(VIEWS).map(([k, v]) => {
+    const n = data.items.filter((it) => inView(it, k) && passesFilters(it)).length;
+    return `<button class="tab${k === state.view ? " on" : ""}" data-view="${k}">${v}<span class="count num">${n}</span></button>`;
+  }).join("");
+}
+function renderChips() {
+  const counts = {};
+  data.items.filter((it) => inView(it, state.view) && passesFilters(it, { ignoreCoin: true }))
+    .forEach((it) => { counts[it.coin_type] = (counts[it.coin_type] || 0) + 1; });
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  const types = Object.keys(data.stats.coin_types).filter((t) => counts[t] || t === state.coin);
+  $("chips").innerHTML = [`<button class="chip${!state.coin ? " on" : ""}" data-coin="">Todas<span class="count num">${total}</span></button>`]
+    .concat(types.map((t) => `<button class="chip${state.coin === t ? " on" : ""}" data-coin="${esc(t)}">${esc(t)}<span class="count num">${counts[t] || 0}</span></button>`))
+    .join("");
+}
 function render() {
   writeState();
-  $("tabs").innerHTML = Object.entries(VIEWS)
-    .map(([k, v]) => `<button data-view="${k}" class="${k === state.view ? "on" : ""}">${v}</button>`).join("");
-  $("hint").textContent = hint();
-  const items = select();
+  renderTabs();
+  renderChips();
+  $("hint").textContent = HINTS[state.view](data.config.suspicious_premium_pct);
+  const items = selected();
   $("list").innerHTML = items.length
-    ? `<ol>${items.map(card).join("")}</ol>`
-    : `<div class="empty">No hay anuncios con estos filtros.</div>`;
+    ? `<div class="grid">${items.slice(0, shown).map(card).join("")}</div>`
+      + (items.length > shown ? `<div class="more"><button class="btn" id="more">Ver más (${items.length - shown} restantes)</button></div>` : "")
+    : `<div class="empty">No hay onzas con estos filtros.</div>`;
 }
+const rerender = () => { shown = PAGE; render(); };
 
-function renderHeader() {
-  const r = data.last_run, s = data.stats;
-  $("meta").innerHTML = r
-    ? `Spot <b>${fmt(r.spot_eur_g, 3)} €/g</b> (${fmt(r.spot_usd_oz)} $/oz) · onza ≈ <b>${fmt(r.spot_eur_g * 31.1035, 0)} €</b>
-       · actualizado ${esc(new Date(r.finished_at).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" }))}
-       · ${s.total.toLocaleString("es-ES")} anuncios activos, ${s.estimated.toLocaleString("es-ES")} con peso estimado, ${s.replicas.toLocaleString("es-ES")} réplicas descartadas`
-    : "Sin datos todavía.";
-  if (data.failed_run) {
-    $("alert").innerHTML = `<div class="alert">La última ejecución falló (${esc(data.failed_run.started_at.slice(0, 16).replace("T", " "))} UTC): ${esc(data.failed_run.error)}. Se muestran los datos anteriores.</div>`;
-  }
-}
-
-$("tabs").addEventListener("click", (e) => {
-  const v = e.target.dataset.view;
-  if (v) { state.view = v; render(); }
-});
+/* ---------- eventos ---------- */
+$("tabs").addEventListener("click", (e) => { const b = e.target.closest("[data-view]"); if (b) { state.view = b.dataset.view; rerender(); } });
+$("chips").addEventListener("click", (e) => { const b = e.target.closest("[data-coin]"); if (b) { state.coin = b.dataset.coin; rerender(); } });
 $("list").addEventListener("click", (e) => {
-  const id = e.target.dataset.toggle;
-  if (!id) return;
+  if (e.target.closest("#more")) { shown += PAGE; render(); return; }
+  const b = e.target.closest("[data-toggle]");
+  if (!b) return;
+  const id = b.dataset.toggle;
   dismissed.has(id) ? dismissed.delete(id) : dismissed.add(id);
-  saveDismissed(dismissed);
+  store.set(DISMISSED_KEY, [...dismissed]);
   render();
 });
-$("f-max").addEventListener("input", (e) => { state.max = Number(e.target.value) || null; render(); });
-$("f-conf").addEventListener("change", (e) => { state.conf = e.target.value; render(); });
-$("f-ship").addEventListener("change", (e) => { state.ship = e.target.checked; render(); });
-$("f-limit").addEventListener("change", (e) => { state.limit = Math.min(Math.max(Number(e.target.value) || 20, 5), 500); render(); });
-$("f-text").addEventListener("input", (e) => { state.text = e.target.value; render(); });
+$("f-text").addEventListener("input", (e) => { state.q = e.target.value; rerender(); });
+$("f-max").addEventListener("input", (e) => { state.max = Number(e.target.value) || null; rerender(); });
+$("f-conf").addEventListener("change", (e) => { state.conf = e.target.value; rerender(); });
+$("f-sort").addEventListener("change", (e) => { state.sort = e.target.value; rerender(); });
+$("f-ship").addEventListener("change", (e) => { state.ship = e.target.checked; rerender(); });
+$("f-lots").addEventListener("change", (e) => { state.lots = e.target.checked; rerender(); });
 
 readState();
+$("list").innerHTML = `<div class="grid">${Array.from({ length: 8 }, () => `<div class="card"><div class="media skeleton" style="border-radius:0"></div><div class="body" style="padding-bottom:16px"><div class="skeleton" style="height:14px;width:40%"></div><div class="skeleton" style="height:18px"></div><div class="skeleton" style="height:18px;width:70%"></div></div></div>`).join("")}</div>`;
 fetch("data.json", { cache: "no-cache" })
   .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-  .then((d) => { data = d; renderHeader(); render(); })
+  .then((d) => { data = d; renderKpis(); render(); })
   .catch((e) => {
-    $("meta").textContent = "";
+    $("kpis").innerHTML = "";
     $("list").innerHTML = `<div class="empty">No se pudieron cargar los datos (${esc(e.message)}).</div>`;
   });
 </script>

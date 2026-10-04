@@ -13,7 +13,7 @@ on:
         default: ""
 
 permissions:
-  contents: write   # escribir la rama data
+  contents: write   # escribir la rama data (estado.json.gz)
   pages: write      # publicar en GitHub Pages
   id-token: write
 
@@ -42,14 +42,14 @@ jobs:
       - name: Tests del analizador
         run: python -m pytest -q
 
-      - name: Recuperar la base de datos (rama data)
+      - name: Recuperar el estado (rama data)
         run: |
           mkdir -p data
-          if git fetch --depth=1 origin data 2>/dev/null; then
-            git show FETCH_HEAD:plata.db.gz | gunzip > data/plata.db
-            echo "Base de datos recuperada: $(du -h data/plata.db | cut -f1)"
+          if git fetch --depth=1 origin data 2>/dev/null && git cat-file -e FETCH_HEAD:estado.json.gz 2>/dev/null; then
+            git show FETCH_HEAD:estado.json.gz | gunzip > data/estado.json
+            echo "Estado recuperado: $(du -h data/estado.json | cut -f1)"
           else
-            echo "Primera ejecución: se empieza con una base de datos vacía"
+            echo "Primera ejecución: se empieza con un estado vacío"
           fi
 
       - name: Descargar y analizar anuncios
@@ -63,17 +63,17 @@ jobs:
       - name: Exportar JSON para la web
         run: python main.py export --out site/data.json
 
-      - name: Guardar la base de datos (rama data)
+      - name: Guardar el estado (rama data)
         # La rama data se reescribe con un único commit para que el repo no crezca cada noche.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gzip -9 -c data/plata.db > "$RUNNER_TEMP/plata.db.gz"
+          gzip -9 -c data/estado.json > "$RUNNER_TEMP/estado.json.gz"
           tmp="$(mktemp -d)"
           cd "$tmp"
           git init -q -b data
-          cp "$RUNNER_TEMP/plata.db.gz" .
-          git add plata.db.gz
+          cp "$RUNNER_TEMP/estado.json.gz" .
+          git add estado.json.gz
           git -c user.name="github-actions[bot]" \
               -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
               commit -q -m "Datos del $(date -u +%F)"

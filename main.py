@@ -2,7 +2,6 @@
 
     python main.py batch                  descarga y analiza los anuncios (lo que se ejecuta cada noche)
     python main.py batch --max-pages 3    prueba rápida
-    python main.py batch --reanalyze      recalcula el análisis sin descargar (tras tocar analyzer.py)
     python main.py export                 genera site/data.json para la web estática (GitHub Pages)
     python main.py web                    web en http://127.0.0.1:5000
     python main.py web --port 8080 --host 0.0.0.0

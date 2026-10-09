@@ -1,0 +1,76 @@
+name: Desplegar web
+
+# Republica la web en GitHub Pages en cada push que cambie la web o el analizador, sin esperar al
+# batch nocturno. No descarga anuncios: exporta el estado que ya hay en la rama data.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - "plata/**"
+      - "main.py"
+      - "requirements.txt"
+      - ".github/workflows/desplegar-web.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-deploy   # el mismo grupo que el batch: nunca se publican dos a la vez
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0   # para contar los commits (número de versión)
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Tests
+        run: python -m pytest -q
+
+      - name: Recuperar el estado (rama data)
+        run: |
+          mkdir -p data
+          if git fetch --depth=1 origin data 2>/dev/null && git cat-file -e FETCH_HEAD:estado.json.gz 2>/dev/null; then
+            git show FETCH_HEAD:estado.json.gz | gunzip > data/estado.json
+            echo "Estado recuperado: $(du -h data/estado.json | cut -f1)"
+          else
+            echo "No hay estado: la web saldrá sin datos"
+          fi
+
+      - name: Exportar JSON para la web
+        env:
+          PYTHONIOENCODING: utf-8
+        run: python main.py export --out site/data.json
+
+      - name: Número de versión
+        run: |
+          printf '{"build":%s,"sha":"%s","date":"%s"}' "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)" "$(date -u +%FT%TZ)" > site/version.json
+          cat site/version.json
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+      - name: Publicar en GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4

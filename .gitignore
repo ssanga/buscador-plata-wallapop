@@ -25,3 +25,4 @@ Thumbs.db
 
 # JSON generado para la web (en Pages lo genera el workflow)
 site/data.json
+site/version.json

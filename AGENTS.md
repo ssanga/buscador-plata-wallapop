@@ -168,6 +168,14 @@ casi nunca se vende tan por debajo del spot.
 
 ## Operaciones en producción
 
+- **Despliegue de la web**: `batch-nocturno.yml` solo publica por la noche. Para no esperar,
+  `desplegar-web.yml` republica Pages en cada push a `main` que toque `site/`, `plata/` o `main.py`
+  (tests + exportar el estado de la rama `data` + publicar, sin descargar anuncios). Ambos comparten
+  el grupo de concurrencia `pages-deploy`. Un push que solo toque docs o tests no despliega.
+- **Versión**: los dos workflows escriben `site/version.json` (`build` = nº de commits, `sha`, fecha
+  de despliegue) y el pie de la web muestra «v57 · abc1234 · desplegada…». Si el número no coincide
+  con `git rev-list --count HEAD` de lo último publicado, el despliegue no se ha hecho. En local
+  (`main.py web`) el pie dice «versión local».
 - **Lanzar el workflow a mano**: en el PC del usuario no está instalado `gh`, así que se hace desde
   la web: Actions → *Batch nocturno* → *Run workflow* (con `max_pages = 3` para una prueba).
 - **Subir el estado local a la rama `data`** (p. ej. para sembrarla o recuperar el histórico). Se

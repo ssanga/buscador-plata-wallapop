@@ -18,7 +18,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: batch-nocturno
+  group: pages-deploy   # el mismo grupo que desplegar-web.yml
   cancel-in-progress: false
 
 jobs:
@@ -30,6 +30,8 @@ jobs:
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0   # para contar los commits (número de versión)
 
       - uses: actions/setup-python@v6
         with:
@@ -62,6 +64,10 @@ jobs:
 
       - name: Exportar JSON para la web
         run: python main.py export --out site/data.json
+
+      - name: Número de versión
+        run: |
+          printf '{"build":%s,"sha":"%s","date":"%s"}' "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)" "$(date -u +%FT%TZ)" > site/version.json
 
       - name: Guardar el estado (rama data)
         # La rama data se reescribe con un único commit para que el repo no crezca cada noche.

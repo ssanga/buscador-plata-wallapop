@@ -271,6 +271,7 @@
     Es una estimación automática a partir del texto del anuncio: <strong>mira siempre las fotos y pregunta antes de comprar</strong>.
     Los descartes, las favoritas y el sobreprecio objetivo se guardan solo en este navegador.
     · <a href="https://github.com/ssanga/buscador-plata-wallapop">Código fuente</a>
+    · <span id="version" class="num">versión local</span>
   </footer>
 </div>
 
@@ -654,6 +655,10 @@ $("f-lots").addEventListener("change", (e) => { state.lots = e.target.checked; r
 readState();
 $("f-target").value = target ?? "";
 $("list").innerHTML = `<div class="grid">${Array.from({ length: 8 }, () => `<div class="card"><div class="media skeleton" style="border-radius:0"></div><div class="body" style="padding-bottom:16px"><div class="skeleton" style="height:14px;width:40%"></div><div class="skeleton" style="height:18px"></div><div class="skeleton" style="height:18px;width:70%"></div></div></div>`).join("")}</div>`;
+fetch("version.json", { cache: "no-cache" })
+  .then((r) => (r.ok ? r.json() : Promise.reject()))
+  .then((v) => { $("version").textContent = `v${v.build} · ${v.sha} · desplegada ${new Date(v.date).toLocaleString("es-ES", { dateStyle: "medium", timeStyle: "short" })}`; })
+  .catch(() => {}); // en local no hay version.json
 fetch("data.json", { cache: "no-cache" })
   .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
   .then((d) => { data = d; renderKpis(); render(); })

@@ -326,7 +326,8 @@ let data = null;
 let dismissed = new Set(store.get(DISMISSED_KEY, []));
 let shown = PAGE;
 let favs = store.get(FAVS_KEY, {}); // id -> {price, title, url, image} en el momento de marcarla
-let target = store.get(TARGET_KEY, null); // sobreprecio objetivo en %, o null
+const DEFAULT_TARGET = 5; // % por defecto; si el usuario vacía el campo se guarda false y queda desactivado
+let target = (() => { const v = store.get(TARGET_KEY, DEFAULT_TARGET); return typeof v === "number" ? v : null; })(); // sobreprecio objetivo en %, o null
 const isTarget = (it) => target != null && it.premium_pct <= target;
 const state = { view: "oportunidades", coin: "", max: null, sort: "premium", ship: false, lots: true, q: "" };
 
@@ -646,7 +647,7 @@ $("f-sort").addEventListener("change", (e) => { state.sort = e.target.value; rer
 $("f-target").addEventListener("input", (e) => {
   const v = e.target.value.trim();
   target = v === "" || isNaN(Number(v)) ? null : Number(v);
-  store.set(TARGET_KEY, target);
+  store.set(TARGET_KEY, target ?? false);
   render();
 });
 $("f-ship").addEventListener("change", (e) => { state.ship = e.target.checked; rerender(); });

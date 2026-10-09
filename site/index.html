@@ -163,6 +163,8 @@
   .badge svg { width: 12px; height: 12px; }
   .badge.good svg { color: var(--good); }
   .badge.warn { color: var(--warn-text); }
+  .badge.target { background: var(--good-soft); color: var(--good-text); }
+  .card.target { border-color: var(--good); box-shadow: 0 0 0 1px var(--good), var(--shadow); }
 
   .body { padding: 14px 16px 0; display: flex; flex-direction: column; gap: 6px; flex: 1; }
   .eyebrow { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: .05em; }
@@ -247,6 +249,7 @@
       <label class="field">Orden
         <select id="f-sort"><option value="premium">sobreprecio</option><option value="price">precio</option><option value="recent">más recientes</option></select>
       </label>
+      <label class="field" title="Resalta las oportunidades con sobreprecio igual o inferior a este valor y las cuenta en el título de la pestaña">Avisar si ≤ <input type="number" id="f-target" step="1" placeholder="—" aria-label="Sobreprecio objetivo en porcentaje"> %</label>
       <label class="field toggle"><input type="checkbox" id="f-ship"><span>Con envío</span></label>
       <label class="field toggle"><input type="checkbox" id="f-lots"><span>Incluir lotes</span></label>
     </div>
@@ -258,7 +261,7 @@
   <footer>
     El sobreprecio compara el precio de cada onza con el valor de la plata que contiene (spot del día).
     Es una estimación automática a partir del texto del anuncio: <strong>mira siempre las fotos y pregunta antes de comprar</strong>.
-    Los descartes se guardan solo en este navegador.
+    Los descartes y el sobreprecio objetivo se guardan solo en este navegador.
     · <a href="https://github.com/ssanga/buscador-plata-wallapop">Código fuente</a>
   </footer>
 </div>
@@ -282,6 +285,7 @@ const CONF = { alta: ["alta"], media: ["alta", "media"], baja: ["alta", "media",
 const PAGE = 24;
 const DISMISSED_KEY = "plata.dismissed";
 const THEME_KEY = "plata.theme";
+const TARGET_KEY = "plata.target";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -307,6 +311,8 @@ const ICON = {
 let data = null;
 let dismissed = new Set(store.get(DISMISSED_KEY, []));
 let shown = PAGE;
+let target = store.get(TARGET_KEY, null); // sobreprecio objetivo en %, o null
+const isTarget = (it) => target != null && it.premium_pct <= target;
 const state = { view: "oportunidades", coin: "", max: null, conf: "media", sort: "premium", ship: false, lots: true, q: "" };
 
 /* ---------- tema ---------- */
@@ -494,12 +500,14 @@ function card(it, i) {
     it.shippable ? "envío disponible" : "solo en mano",
     it.days_listed != null ? age(it.days_listed) : "",
   ].filter(Boolean).map((m) => `<span>${m}</span>`).join("");
+  const hit = isTarget(it) && inView(it, "oportunidades") && !isDismissed;
   const badges = [
+    hit && `<span class="badge target">Objetivo</span>`,
     it.is_new && `<span class="badge good">${ICON.spark}Nueva</span>`,
     drop && `<span class="badge good">${ICON.down}${pct((it.price / it.prev_price - 1) * 100)}</span>`,
     it.reserved && `<span class="badge warn">${ICON.lock}Reservada</span>`,
   ].filter(Boolean).join("");
-  return `<article class="card${it.reserved ? " reserved" : ""}">
+  return `<article class="card${it.reserved ? " reserved" : ""}${hit ? " target" : ""}">
     <div class="media">
       <a href="${url}" target="_blank" rel="noopener" tabindex="-1" aria-hidden="true">
         ${it.image ? `<img src="${safeUrl(it.image)}" alt="" loading="lazy">` : `<span class="placeholder">Sin foto</span>`}
@@ -549,12 +557,17 @@ function render() {
   writeState();
   renderTabs();
   renderChips();
+  updateTitle();
   $("hint").textContent = HINTS[state.view](data.config.suspicious_premium_pct);
   const items = selected();
   $("list").innerHTML = items.length
     ? `<div class="grid">${items.slice(0, shown).map(card).join("")}</div>`
       + (items.length > shown ? `<div class="more"><button class="btn" id="more">Ver más (${items.length - shown} restantes)</button></div>` : "")
     : `<div class="empty">No hay onzas con estos filtros.</div>`;
+}
+function updateTitle() {
+  const n = target == null ? 0 : data.items.filter((it) => inView(it, "oportunidades") && it.confidence !== "baja" && isTarget(it)).length;
+  document.title = n ? `(${n}) Onzas de plata` : "Onzas de plata";
 }
 const rerender = () => { shown = PAGE; render(); };
 
@@ -574,10 +587,17 @@ $("f-text").addEventListener("input", (e) => { state.q = e.target.value; rerende
 $("f-max").addEventListener("input", (e) => { state.max = Number(e.target.value) || null; rerender(); });
 $("f-conf").addEventListener("change", (e) => { state.conf = e.target.value; rerender(); });
 $("f-sort").addEventListener("change", (e) => { state.sort = e.target.value; rerender(); });
+$("f-target").addEventListener("input", (e) => {
+  const v = e.target.value.trim();
+  target = v === "" || isNaN(Number(v)) ? null : Number(v);
+  store.set(TARGET_KEY, target);
+  render();
+});
 $("f-ship").addEventListener("change", (e) => { state.ship = e.target.checked; rerender(); });
 $("f-lots").addEventListener("change", (e) => { state.lots = e.target.checked; rerender(); });
 
 readState();
+$("f-target").value = target ?? "";
 $("list").innerHTML = `<div class="grid">${Array.from({ length: 8 }, () => `<div class="card"><div class="media skeleton" style="border-radius:0"></div><div class="body" style="padding-bottom:16px"><div class="skeleton" style="height:14px;width:40%"></div><div class="skeleton" style="height:18px"></div><div class="skeleton" style="height:18px;width:70%"></div></div></div>`).join("")}</div>`;
 fetch("data.json", { cache: "no-cache" })
   .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })

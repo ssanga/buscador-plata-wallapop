@@ -272,6 +272,7 @@ const VIEWS = {
   nuevas: "Nuevas",
   bajadas: "Bajadas",
   sospechosas: "Demasiado buenas",
+  vendidas: "Vendidas",
   descartadas: "Descartadas",
 };
 const HINTS = {
@@ -279,6 +280,7 @@ const HINTS = {
   nuevas: () => "Anuncios aparecidos en la última actualización.",
   bajadas: () => "Anuncios cuyo vendedor ha bajado el precio.",
   sospechosas: (s) => `Más de un ${-s} % por debajo del spot: casi siempre réplicas no declaradas, precios por unidad o errores. De vez en cuando, una ganga.`,
+  vendidas: () => "Anuncios que ya no aparecen (vendidos o retirados por el vendedor), con el último precio visto: la mejor pista de lo que se paga de verdad por cada moneda. Se olvidan a los 30 días.",
   descartadas: () => "Anuncios que has ocultado en este navegador.",
 };
 const CONF = { alta: ["alta"], media: ["alta", "media"], baja: ["alta", "media", "baja"] };
@@ -358,6 +360,8 @@ function writeState() {
 /* ---------- selección ---------- */
 function inView(it, view) {
   const susp = data.config.suspicious_premium_pct;
+  if (it.sold) return view === "vendidas" && !dismissed.has(it.id);
+  if (view === "vendidas") return false;
   if ((view === "descartadas") !== dismissed.has(it.id)) return false;
   if (view === "oportunidades") return it.premium_pct >= susp;
   if (view === "sospechosas") return it.premium_pct < susp;
@@ -379,7 +383,9 @@ function selected() {
   const sorters = {
     premium: (a, b) => a.premium_pct - b.premium_pct,
     price: (a, b) => a.price_per_coin - b.price_per_coin,
-    recent: (a, b) => (a.days_listed ?? 1e9) - (b.days_listed ?? 1e9),
+    recent: state.view === "vendidas"
+      ? (a, b) => a.gone_days - b.gone_days
+      : (a, b) => (a.days_listed ?? 1e9) - (b.days_listed ?? 1e9),
   };
   const sort = state.view === "bajadas" && state.sort === "premium"
     ? (a, b) => (a.price - a.prev_price) / a.prev_price - (b.price - b.prev_price) / b.prev_price
@@ -498,16 +504,17 @@ function card(it, i) {
   const meta = [
     esc(it.city || "Ubicación desconocida"),
     it.shippable ? "envío disponible" : "solo en mano",
-    it.days_listed != null ? age(it.days_listed) : "",
+    it.sold ? `visto por última vez ${it.gone_days === 0 ? "hoy" : `hace ${it.gone_days} d`}` : it.days_listed != null ? age(it.days_listed) : "",
   ].filter(Boolean).map((m) => `<span>${m}</span>`).join("");
   const hit = isTarget(it) && inView(it, "oportunidades") && !isDismissed;
   const badges = [
     hit && `<span class="badge target">Objetivo</span>`,
+    it.sold && `<span class="badge warn">Vendida o retirada</span>`,
     it.is_new && `<span class="badge good">${ICON.spark}Nueva</span>`,
     drop && `<span class="badge good">${ICON.down}${pct((it.price / it.prev_price - 1) * 100)}</span>`,
     it.reserved && `<span class="badge warn">${ICON.lock}Reservada</span>`,
   ].filter(Boolean).join("");
-  return `<article class="card${it.reserved ? " reserved" : ""}${hit ? " target" : ""}">
+  return `<article class="card${it.reserved || it.sold ? " reserved" : ""}${hit ? " target" : ""}">
     <div class="media">
       <a href="${url}" target="_blank" rel="noopener" tabindex="-1" aria-hidden="true">
         ${it.image ? `<img src="${safeUrl(it.image)}" alt="" loading="lazy">` : `<span class="placeholder">Sin foto</span>`}
@@ -530,6 +537,7 @@ function card(it, i) {
       <div class="prem">
         <div class="prem-value num">${pct(it.premium_pct)}</div>
         <div class="prem-label num">vs. plata (${eur(it.melt_value_eur, 0)})</div>
+        ${it.vs_median_pct != null ? `<div class="prem-label num" title="Mediana de ${esc(it.coin_type)} en Wallapop: ${eur(data.stats.coin_medians[it.coin_type], 0)}/oz">${pct(it.vs_median_pct)} vs. mediana</div>` : ""}
       </div>
       ${meter(it.premium_pct)}
     </div>

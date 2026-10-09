@@ -124,6 +124,7 @@
   }
   .field:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
   .field input, .field select { border: 0; background: none; outline: none; height: 100%; color: var(--text); font-size: 14px; min-width: 0; }
+  .field select option { background: var(--surface); color: var(--text); } /* la lista desplegable no hereda el fondo transparente del select */
   .field.search { flex: 1 1 220px; }
   .field.search input { width: 100%; }
   .field input[type=number] { width: 64px; }

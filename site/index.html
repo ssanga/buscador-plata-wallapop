@@ -109,8 +109,7 @@
   .tab:hover { color: var(--text); }
   .tab.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgb(0 0 0 / .12); }
   .tab .count { margin-left: 6px; font-size: 12px; color: var(--text-3); }
-  .chips { display: flex; gap: 6px; margin-top: 10px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
-  .chips::-webkit-scrollbar { display: none; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
   .chip {
     border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 5px 12px; font-size: 13px;
     cursor: pointer; white-space: nowrap; color: var(--text-2);
@@ -156,8 +155,16 @@
     background: rgb(0 0 0 / .55); color: #fff; display: grid; place-items: center; opacity: 0; transition: opacity .15s; backdrop-filter: blur(4px);
   }
   .dismiss svg { width: 14px; height: 14px; }
+  .fav { right: 48px; }
+  .fav.on { opacity: 1; color: #f5c518; }
+  .fav.on svg { fill: currentColor; }
   .card:hover .dismiss, .dismiss:focus-visible { opacity: 1; }
   @media (hover: none) { .dismiss { opacity: 1; } }
+  .missing { margin-top: 24px; font-size: 14px; color: var(--text-2); }
+  .missing h3 { font-size: 14px; margin: 0 0 8px; color: var(--text); }
+  .missing li { margin: 4px 0; }
+  .link-btn { border: 0; background: none; color: var(--accent); cursor: pointer; padding: 0; font: inherit; text-decoration: underline; }
+  #favs-alert .alert { background: var(--accent-soft); color: var(--text); }
   .badges { position: absolute; left: 10px; bottom: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
   .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 7px; background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgb(0 0 0 / .2); }
   .badge svg { width: 12px; height: 12px; }
@@ -203,7 +210,10 @@
     .kpis { grid-template-columns: 1fr 1fr; }
     .kpi:first-child { grid-column: 1 / -1; }
   }
+  @media (max-height: 800px) { .toolbar { position: static; } } /* con tantos chips la barra fija ocuparía media pantalla */
   @media (max-width: 520px) {
+    .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent); mask-image: linear-gradient(90deg, #000 88%, transparent); }
+    .chips::-webkit-scrollbar { display: none; }
     .kpi-value { font-size: 24px; }
     .tagline { display: none; }
     .grid { grid-template-columns: 1fr; }
@@ -226,6 +236,7 @@
   </header>
 
   <div id="alert"></div>
+  <div id="favs-alert"></div>
 
   <section class="kpis" id="kpis" aria-label="Resumen">
     <div class="kpi"><div class="skeleton" style="height:72px"></div></div>
@@ -243,9 +254,6 @@
         <input type="search" id="f-text" placeholder="Buscar en el título…" aria-label="Buscar en el título">
       </label>
       <label class="field">Hasta <input type="number" id="f-max" min="0" step="5" placeholder="—" aria-label="Precio máximo"> €</label>
-      <label class="field">Confianza
-        <select id="f-conf"><option value="alta">alta</option><option value="media">media+</option><option value="baja">todas</option></select>
-      </label>
       <label class="field">Orden
         <select id="f-sort"><option value="premium">sobreprecio</option><option value="price">precio</option><option value="recent">más recientes</option></select>
       </label>
@@ -261,7 +269,7 @@
   <footer>
     El sobreprecio compara el precio de cada onza con el valor de la plata que contiene (spot del día).
     Es una estimación automática a partir del texto del anuncio: <strong>mira siempre las fotos y pregunta antes de comprar</strong>.
-    Los descartes y el sobreprecio objetivo se guardan solo en este navegador.
+    Los descartes, las favoritas y el sobreprecio objetivo se guardan solo en este navegador.
     · <a href="https://github.com/ssanga/buscador-plata-wallapop">Código fuente</a>
   </footer>
 </div>
@@ -273,6 +281,7 @@ const VIEWS = {
   bajadas: "Bajadas",
   sospechosas: "Demasiado buenas",
   vendidas: "Vendidas",
+  favoritas: "Favoritas",
   descartadas: "Descartadas",
 };
 const HINTS = {
@@ -281,13 +290,14 @@ const HINTS = {
   bajadas: () => "Anuncios cuyo vendedor ha bajado el precio.",
   sospechosas: (s) => `Más de un ${-s} % por debajo del spot: casi siempre réplicas no declaradas, precios por unidad o errores. De vez en cuando, una ganga.`,
   vendidas: () => "Anuncios que ya no aparecen (vendidos o retirados por el vendedor), con el último precio visto: la mejor pista de lo que se paga de verdad por cada moneda. Se olvidan a los 30 días.",
+  favoritas: () => "Anuncios que has marcado con ★, también si ya se han vendido. Se avisa si bajan de precio o desaparecen. Se guardan solo en este navegador.",
   descartadas: () => "Anuncios que has ocultado en este navegador.",
 };
-const CONF = { alta: ["alta"], media: ["alta", "media"], baja: ["alta", "media", "baja"] };
 const PAGE = 24;
 const DISMISSED_KEY = "plata.dismissed";
 const THEME_KEY = "plata.theme";
 const TARGET_KEY = "plata.target";
+const FAVS_KEY = "plata.favs";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -305,6 +315,7 @@ const ICON = {
   spark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/></svg>',
   down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>',
   lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+  star: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></svg>',
   x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
   undo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-1"/></svg>',
   alert: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>',
@@ -313,9 +324,10 @@ const ICON = {
 let data = null;
 let dismissed = new Set(store.get(DISMISSED_KEY, []));
 let shown = PAGE;
+let favs = store.get(FAVS_KEY, {}); // id -> {price, title, url, image} en el momento de marcarla
 let target = store.get(TARGET_KEY, null); // sobreprecio objetivo en %, o null
 const isTarget = (it) => target != null && it.premium_pct <= target;
-const state = { view: "oportunidades", coin: "", max: null, conf: "media", sort: "premium", ship: false, lots: true, q: "" };
+const state = { view: "oportunidades", coin: "", max: null, sort: "premium", ship: false, lots: true, q: "" };
 
 /* ---------- tema ---------- */
 function applyTheme(t) { if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; }
@@ -334,20 +346,18 @@ function readState() {
   if (VIEWS[p.get("view")]) state.view = p.get("view");
   state.coin = p.get("coin") || "";
   state.max = Number(p.get("max")) || null;
-  if (CONF[p.get("conf")]) state.conf = p.get("conf");
   if (["premium", "price", "recent"].includes(p.get("sort"))) state.sort = p.get("sort");
   state.ship = p.get("ship") === "1";
   state.lots = p.get("lots") !== "0";
   state.q = p.get("q") || "";
   $("f-max").value = state.max ?? "";
-  $("f-conf").value = state.conf;
   $("f-sort").value = state.sort;
   $("f-ship").checked = state.ship;
   $("f-lots").checked = state.lots;
   $("f-text").value = state.q;
 }
 function writeState() {
-  const p = new URLSearchParams({ view: state.view, conf: state.conf });
+  const p = new URLSearchParams({ view: state.view });
   if (state.coin) p.set("coin", state.coin);
   if (state.max) p.set("max", state.max);
   if (state.sort !== "premium") p.set("sort", state.sort);
@@ -359,6 +369,7 @@ function writeState() {
 
 /* ---------- selección ---------- */
 function inView(it, view) {
+  if (view === "favoritas") return Boolean(favs[it.id]);
   const susp = data.config.suspicious_premium_pct;
   if (it.sold) return view === "vendidas" && !dismissed.has(it.id);
   if (view === "vendidas") return false;
@@ -369,10 +380,10 @@ function inView(it, view) {
   if (view === "bajadas") return it.prev_price > it.price;
   return true;
 }
-function passesFilters(it, { ignoreCoin = false } = {}) {
+function passesFilters(it, { ignoreCoin = false, view = state.view } = {}) {
   const q = norm(state.q);
-  return CONF[state.conf].includes(it.confidence)
-    && (ignoreCoin || !state.coin || it.coin_type === state.coin)
+  if (view === "favoritas") return (ignoreCoin || !state.coin || it.coin_type === state.coin) && (!q || norm(it.title).includes(q));
+  return (ignoreCoin || !state.coin || it.coin_type === state.coin)
     && (!state.max || it.price_per_coin <= state.max)
     && (!state.ship || it.shippable)
     && (state.lots || it.quantity === 1)
@@ -501,6 +512,7 @@ function card(it, i) {
   const drop = it.prev_price > it.price;
   const url = safeUrl(it.url);
   const isDismissed = dismissed.has(it.id);
+  const fav = favs[it.id];
   const meta = [
     esc(it.city || "Ubicación desconocida"),
     it.shippable ? "envío disponible" : "solo en mano",
@@ -509,6 +521,7 @@ function card(it, i) {
   const hit = isTarget(it) && inView(it, "oportunidades") && !isDismissed;
   const badges = [
     hit && `<span class="badge target">Objetivo</span>`,
+    fav && !it.sold && it.price !== fav.price && `<span class="badge ${it.price < fav.price ? "good" : "warn"}">${it.price < fav.price ? ICON.down : ""}${it.price < fav.price ? "Bajó" : "Subió"} desde ${eur(fav.price, 0)}</span>`,
     it.sold && `<span class="badge warn">Vendida o retirada</span>`,
     it.is_new && `<span class="badge good">${ICON.spark}Nueva</span>`,
     drop && `<span class="badge good">${ICON.down}${pct((it.price / it.prev_price - 1) * 100)}</span>`,
@@ -520,6 +533,7 @@ function card(it, i) {
         ${it.image ? `<img src="${safeUrl(it.image)}" alt="" loading="lazy">` : `<span class="placeholder">Sin foto</span>`}
       </a>
       <span class="rank num">#${i + 1}</span>
+      <button class="dismiss fav${fav ? " on" : ""}" data-fav="${esc(it.id)}" title="${fav ? "Quitar de favoritas" : "Añadir a favoritas"}" aria-pressed="${fav ? "true" : "false"}" aria-label="${fav ? "Quitar de favoritas" : "Añadir a favoritas"}">${ICON.star}</button>
       <button class="dismiss" data-toggle="${esc(it.id)}" title="${isDismissed ? "Restaurar" : "Descartar"}" aria-label="${isDismissed ? "Restaurar" : "Descartar"} anuncio">${isDismissed ? ICON.undo : ICON.x}</button>
       ${badges ? `<div class="badges">${badges}</div>` : ""}
     </div>
@@ -547,7 +561,7 @@ function card(it, i) {
 /* ---------- render ---------- */
 function renderTabs() {
   $("tabs").innerHTML = Object.entries(VIEWS).map(([k, v]) => {
-    const n = data.items.filter((it) => inView(it, k) && passesFilters(it)).length;
+    const n = data.items.filter((it) => inView(it, k) && passesFilters(it, { view: k })).length;
     return `<button class="tab${k === state.view ? " on" : ""}" data-view="${k}">${v}<span class="count num">${n}</span></button>`;
   }).join("");
 }
@@ -561,17 +575,40 @@ function renderChips() {
     .concat(types.map((t) => `<button class="chip${state.coin === t ? " on" : ""}" data-coin="${esc(t)}">${esc(t)}<span class="count num">${counts[t] || 0}</span></button>`))
     .join("");
 }
+function favsAlert() {
+  const byId = new Map(data.items.map((it) => [it.id, it]));
+  let drops = 0, gone = 0;
+  for (const [id, f] of Object.entries(favs)) {
+    const it = byId.get(id);
+    if (!it || it.sold) gone++;
+    else if (it.price < f.price) drops++;
+  }
+  const parts = [drops && `${drops} ${drops === 1 ? "ha bajado" : "han bajado"} de precio`, gone && `${gone} ya no ${gone === 1 ? "está" : "están"} a la venta`].filter(Boolean);
+  $("favs-alert").innerHTML = parts.length && state.view !== "favoritas"
+    ? `<div class="alert">${ICON.star.replace("<svg", '<svg width="18" height="18"')}<div>Favoritas: ${parts.join(" y ")}. <button class="link-btn" data-view="favoritas">Ver favoritas</button></div></div>`
+    : "";
+}
+function missingFavs() {
+  const ids = new Set(data.items.map((it) => it.id));
+  const rows = Object.entries(favs).filter(([id]) => !ids.has(id));
+  if (!rows.length) return "";
+  return `<div class="missing"><h3>Ya no están en los datos (${rows.length})</h3><ul>`
+    + rows.map(([id, f]) => `<li><a href="${safeUrl(f.url)}" target="_blank" rel="noopener">${esc(f.title)}</a> · ${eur(f.price, 0)} · <button class="link-btn" data-fav-del="${esc(id)}">Quitar</button></li>`).join("")
+    + "</ul></div>";
+}
 function render() {
   writeState();
   renderTabs();
   renderChips();
   updateTitle();
+  favsAlert();
   $("hint").textContent = HINTS[state.view](data.config.suspicious_premium_pct);
   const items = selected();
   $("list").innerHTML = items.length
     ? `<div class="grid">${items.slice(0, shown).map(card).join("")}</div>`
       + (items.length > shown ? `<div class="more"><button class="btn" id="more">Ver más (${items.length - shown} restantes)</button></div>` : "")
-    : `<div class="empty">No hay onzas con estos filtros.</div>`;
+    : `<div class="empty">${state.view === "favoritas" ? "Todavía no tienes favoritas. Pulsa la ★ de una tarjeta para guardarla." : "No hay onzas con estos filtros."}</div>`;
+  if (state.view === "favoritas") $("list").innerHTML += missingFavs();
 }
 function updateTitle() {
   const n = target == null ? 0 : data.items.filter((it) => inView(it, "oportunidades") && it.confidence !== "baja" && isTarget(it)).length;
@@ -580,10 +617,21 @@ function updateTitle() {
 const rerender = () => { shown = PAGE; render(); };
 
 /* ---------- eventos ---------- */
+$("favs-alert").addEventListener("click", (e) => { if (e.target.closest("[data-view]")) { state.view = "favoritas"; rerender(); } });
 $("tabs").addEventListener("click", (e) => { const b = e.target.closest("[data-view]"); if (b) { state.view = b.dataset.view; rerender(); } });
 $("chips").addEventListener("click", (e) => { const b = e.target.closest("[data-coin]"); if (b) { state.coin = b.dataset.coin; rerender(); } });
 $("list").addEventListener("click", (e) => {
   if (e.target.closest("#more")) { shown += PAGE; render(); return; }
+  const del = e.target.closest("[data-fav-del]");
+  const fb = e.target.closest("[data-fav]");
+  if (del || fb) {
+    const id = del ? del.dataset.favDel : fb.dataset.fav;
+    if (favs[id]) delete favs[id];
+    else { const it = data.items.find((x) => x.id === id); favs[id] = { price: it.price, title: it.title, url: it.url, image: it.image }; }
+    store.set(FAVS_KEY, favs);
+    render();
+    return;
+  }
   const b = e.target.closest("[data-toggle]");
   if (!b) return;
   const id = b.dataset.toggle;
@@ -593,7 +641,6 @@ $("list").addEventListener("click", (e) => {
 });
 $("f-text").addEventListener("input", (e) => { state.q = e.target.value; rerender(); });
 $("f-max").addEventListener("input", (e) => { state.max = Number(e.target.value) || null; rerender(); });
-$("f-conf").addEventListener("change", (e) => { state.conf = e.target.value; rerender(); });
 $("f-sort").addEventListener("change", (e) => { state.sort = e.target.value; rerender(); });
 $("f-target").addEventListener("input", (e) => {
   const v = e.target.value.trim();

@@ -133,6 +133,9 @@ En la consola de Windows conviene `PYTHONIOENCODING=utf-8` (hay emojis en los an
 6. `evaluate()`: si un lote sale más de un 35 % por debajo del spot, se trata como precio por
    unidad.
 
+`export.build` solo incluye anuncios publicados (`created_at`) hace menos de `MAX_AGE_DAYS` (183, ~6 meses;
+`PLATA_MAX_AGE_DAYS`, 0 lo desactiva); sin fecha no se descartan. El estado conserva todo.
+
 En la web, `premium_pct < SUSPICIOUS_PREMIUM_PCT` (−30 %) va a "Demasiado buenas": una onza bullion
 casi nunca se vende tan por debajo del spot.
 

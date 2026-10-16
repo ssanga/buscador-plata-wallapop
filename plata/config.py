@@ -43,6 +43,10 @@ LONGITUDE = float(os.environ.get("PLATA_LON", -3.7038))
 # ser réplica no declarada, precio por unidad mal leído o un error: va a "Demasiado buenas".
 SUSPICIOUS_PREMIUM_PCT = float(os.environ.get("PLATA_SUSPICIOUS", -30))
 
+# La web solo muestra anuncios publicados (created_at) hace menos de esto (~6 meses): los más
+# antiguos suelen ser anuncios olvidados. 0 desactiva el filtro. No afecta al estado guardado.
+MAX_AGE_DAYS = int(os.environ.get("PLATA_MAX_AGE_DAYS", 183))
+
 # Anuncios que llevan este tiempo sin aparecer se borran del estado (vendidos o retirados).
 FORGET_AFTER_DAYS = 30
 RUNS_TO_KEEP = 90

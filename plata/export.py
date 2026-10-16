@@ -21,6 +21,12 @@ def _days_since(iso: str | None, now: datetime) -> int | None:
     return (now - datetime.fromisoformat(iso)).days if iso else None
 
 
+def too_old(rec: dict, now: datetime) -> bool:
+    """Publicado hace más de MAX_AGE_DAYS. Sin fecha de publicación no se descarta."""
+    age = _days_since(rec.get("created_at"), now)
+    return bool(config.MAX_AGE_DAYS) and age is not None and age > config.MAX_AGE_DAYS
+
+
 def reference_prices(items: list[dict]) -> dict[str, float]:
     """Mediana de €/onza por tipo de moneda, sin las sospechosas ni las de confianza baja.
 
@@ -63,7 +69,11 @@ def build(state: dict) -> dict:
 
     items, excluded, types = [], Counter(), Counter()
     active = [r for r in state["items"].values() if r.get("active")]
+    old = 0
     for rec in active:
+        if too_old(rec, now):
+            old += 1
+            continue
         a = analyze(rec["title"], rec["description"])
         if not a.is_target:
             excluded["réplicas" if a.is_replica else "otros"] += 1
@@ -82,6 +92,8 @@ def build(state: dict) -> dict:
     if run and spot:
         for rec in state["items"].values():
             if rec.get("active") or rec["last_seen"] >= run["started_at"]:
+                continue
+            if too_old(rec, now):
                 continue
             a = analyze(rec["title"], rec["description"])
             if not a.is_target:
@@ -107,10 +119,11 @@ def build(state: dict) -> dict:
             "sold": sold,
             "replicas": excluded["réplicas"],
             "excluded": excluded["otros"],
+            "too_old": old,
             "coin_types": dict(types.most_common()),
             "coin_medians": refs,
         },
-        "config": {"suspicious_premium_pct": config.SUSPICIOUS_PREMIUM_PCT, "min_price": config.MIN_PRICE},
+        "config": {"suspicious_premium_pct": config.SUSPICIOUS_PREMIUM_PCT, "min_price": config.MIN_PRICE, "max_age_days": config.MAX_AGE_DAYS},
         "items": items,
     }
 

@@ -46,3 +46,18 @@ def test_vendidas_salen_aparte_y_no_cuentan_como_objetivo():
     assert [(i["id"], bool(i.get("sold"))) for i in data["items"]] == [("1", False), ("2", True)]
     assert data["stats"]["targets"] == 1 and data["stats"]["sold"] == 1
     assert next(i for i in data["items"] if i["id"] == "2")["gone_days"] >= 0
+
+
+def test_anuncios_de_mas_de_seis_meses_no_se_exportan():
+    from plata.export import build
+    t1 = "2026-10-06T02:00:00+00:00"
+    run = {"started_at": t1, "finished_at": t1, "status": "ok", "spot_eur_oz": 30.0}
+    viejo = _rec(2, "Moneda 1 onza plata Maple Leaf 999", True, t1)
+    viejo["created_at"] = "2025-01-01T00:00:00+00:00"
+    sin_fecha = _rec(3, "Moneda 1 onza plata Maple Leaf 999", True, t1)
+    sin_fecha["created_at"] = None
+    state = {"runs": [run], "items": {
+        "1": _rec(1, "Moneda 1 onza plata Maple Leaf 999", True, t1), "2": viejo, "3": sin_fecha}}
+    data = build(state)
+    assert sorted(i["id"] for i in data["items"]) == ["1", "3"]
+    assert data["stats"]["too_old"] == 1
